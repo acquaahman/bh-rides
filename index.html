@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // ── SMS via Twilio serverless function ──
       // Uncomment once your function is deployed:
       //
-       await fetch('/api/notify-sms', {
+       await fetch('/.netlify/functions/notify-sms', {
          method:  'POST',
          headers: { 'Content-Type': 'application/json' },
          body:    JSON.stringify({ message: data._smsBody })
