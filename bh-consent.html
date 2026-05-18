@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B&H Rides — Community Airport Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --night:    #0d0f14;
+      --deep:     #13161f;
+      --card:     #1a1e2b;
+      --border:   #252a38;
+      --blue:     #3b82f6;
+      --blue-dim: #1d4ed8;
+      --gold:     #f59e0b;
+      --white:    #f0f2f8;
+      --muted:    #7a8099;
+      --success:  #10b981;
+      --radius:   12px;
+      --font-display: 'DM Serif Display', serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--night); color: var(--white); line-height: 1.6; overflow-x: hidden; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(13,15,20,0.88); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .nav-logo { font-family: var(--font-display); font-size: 1.4rem; color: var(--white); }
+    .nav-logo span { color: var(--gold); }
+    .nav-links { display: flex; gap: 0.5rem; list-style: none; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 0.5rem 0.9rem; border-radius: 8px; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-links .cta-link { background: var(--blue); color: var(--white); padding: 0.55rem 1.2rem; }
+    .nav-links .cta-link:hover { background: var(--blue-dim); color: var(--white); }
+
+    /* HERO */
+    .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6rem 1.5rem 4rem; position: relative; overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(13,15,20,0.55) 0%, rgba(13,15,20,0.8) 60%, var(--night) 100%), url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1920') center/cover no-repeat; z-index: 0; }
+    .hero-bg::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.4; }
+    .hero-content { position: relative; z-index: 1; max-width: 680px; }
+    .hero-badge { display: inline-block; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: var(--gold); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.35rem 0.9rem; border-radius: 50px; margin-bottom: 1.5rem; animation: fadeUp 0.8s ease both; }
+    .hero h1 { font-family: var(--font-display); font-size: clamp(2.8rem, 6vw, 4.5rem); line-height: 1.1; margin-bottom: 1rem; animation: fadeUp 1s ease 0.1s both; }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+    .hero-sub { font-size: 1.1rem; color: var(--muted); margin-bottom: 2.5rem; animation: fadeUp 1s ease 0.2s both; }
+    .hero-price { display: inline-flex; align-items: baseline; gap: 0.4rem; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); border-radius: 50px; padding: 0.6rem 1.4rem; margin-bottom: 2rem; animation: fadeUp 1s ease 0.3s both; }
+    .hero-price .amount { font-family: var(--font-display); font-size: 2.2rem; color: var(--blue); }
+    .hero-price .label { font-size: 0.9rem; color: var(--muted); }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: fadeUp 1s ease 0.4s both; }
+
+    /* BUTTONS */
+    .btn-primary { background: var(--blue); color: var(--white); padding: 0.85rem 2rem; border-radius: 50px; font-weight: 600; font-size: 1rem; text-decoration: none; transition: background 0.2s, transform 0.2s, box-shadow 0.2s; border: none; cursor: pointer; font-family: var(--font-body); display: inline-block; }
+    .btn-primary:hover { background: var(--blue-dim); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+    .btn-ghost { background: transparent; color: var(--muted); padding: 0.85rem 2rem; border-radius: 50px; font-weight: 500; font-size: 1rem; text-decoration: none; border: 1px solid var(--border); transition: color 0.2s, border-color 0.2s; }
+    .btn-ghost:hover { color: var(--white); border-color: var(--muted); }
+
+    /* ABOUT */
+    .about { padding: 6rem 1.5rem; background: var(--deep); }
+    .section-label { display: block; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; text-align: center; }
+    .section-title { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); text-align: center; margin-bottom: 3.5rem; line-height: 1.15; }
+    .cards { max-width: 1000px; margin: 0 auto 3.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 1.75rem; transition: transform 0.25s, border-color 0.25s; }
+    .card:hover { transform: translateY(-5px); border-color: rgba(59,130,246,0.35); }
+    .card-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.6rem; }
+    .card p { color: var(--muted); font-size: 0.95rem; line-height: 1.7; }
+    .info-box { max-width: 1000px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 2.5rem; }
+    .info-box h3 { font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 1.25rem; color: var(--blue); }
+    .info-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0; }
+    .info-list li { padding: 0.85rem 0; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.95rem; }
+    .info-list li:last-child { border-bottom: none; }
+    .info-list strong { color: var(--white); }
+
+    /* CTA BANNER */
+    .cta-banner { padding: 5rem 1.5rem; text-align: center; background: var(--night); position: relative; overflow: hidden; }
+    .cta-banner::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); pointer-events: none; }
+    .cta-banner h2 { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: 0.75rem; position: relative; }
+    .cta-banner p { color: var(--muted); margin-bottom: 2rem; font-size: 1.05rem; position: relative; }
+
+    /* FORM */
+    .form-section { padding: 6rem 1.5rem 5rem; background: var(--deep); }
+    .form-wrap { max-width: 760px; margin: 0 auto; }
+    .form-header { text-align: center; margin-bottom: 3rem; }
+    .form-header h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: 0.5rem; }
+    .form-header p { color: var(--muted); font-size: 1rem; }
+    .ride-form { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; }
+    .form-block { margin-bottom: 2.5rem; }
+    .form-block-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 1.1rem; }
+    .field label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--white); margin-bottom: 0.4rem; }
+    .field input, .field select, .field textarea { width: 100%; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; color: var(--white); font-family: var(--font-body); font-size: 0.95rem; padding: 0.7rem 0.9rem; transition: border-color 0.2s; appearance: none; }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8099' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; padding-right: 2.2rem; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--blue); }
+    .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+    .field small { display: block; margin-top: 0.35rem; font-size: 0.8rem; color: var(--muted); }
+    .radio-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .radio-opt { display: flex; align-items: center; gap: 0.45rem; cursor: pointer; color: var(--muted); font-size: 0.95rem; padding: 0.55rem 1rem; border-radius: 8px; border: 1px solid var(--border); transition: border-color 0.2s, color 0.2s, background 0.2s; user-select: none; }
+    .radio-opt input[type="radio"] { display: none; }
+    .radio-opt.selected { border-color: var(--blue); background: rgba(59,130,246,0.1); color: var(--white); }
+    .price-display { display: flex; align-items: center; gap: 1rem; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .price-display .amount { font-family: var(--font-display); font-size: 2rem; color: var(--blue); }
+    .price-display .price-note { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+    .price-display .price-note strong { color: var(--white); }
+    .form-footer { text-align: center; padding-top: 1rem; }
+    .btn-submit { background: var(--blue); color: var(--white); padding: 1rem 2.75rem; border-radius: 50px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; font-family: var(--font-body); transition: background 0.2s, transform 0.2s, box-shadow 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-submit:hover { background: var(--blue-dim); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .form-note { color: var(--muted); font-size: 0.85rem; margin-top: 0.9rem; }
+    .success-card { display: none; background: var(--card); border: 2px solid var(--success); border-radius: 16px; padding: 3rem 2rem; text-align: center; }
+    .success-card .check { font-size: 3rem; margin-bottom: 1rem; }
+    .success-card h2 { font-family: var(--font-display); font-size: 1.8rem; color: var(--success); margin-bottom: 0.75rem; }
+    .success-card p { color: var(--muted); margin-bottom: 0.5rem; line-height: 1.7; }
+    .success-card strong { color: var(--white); }
+
+    /* FOOTER */
+    footer { background: var(--night); border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; }
+    footer p { color: var(--muted); font-size: 0.9rem; margin: 0.3rem 0; }
+    footer a { color: var(--blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      .nav-links li:not(:last-child) { display: none; }
+      .ride-form { padding: 1.75rem 1.25rem; }
+    }
+
+    /* =====================
+       PASSWORD SCREEN
+    ===================== */
+    #passwordScreen {
+      transition: opacity 0.3s ease;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #0a1318;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .pw-card {
+      background: #13161f;
+      border: 1px solid #252a38;
+      border-radius: 16px;
+      padding: 3rem 2.5rem;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .pw-logo {
+      font-family: 'Syne', 'DM Sans', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #f0f4f5;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+
+    .pw-logo span { color: #4ab3c8; }
+
+    .pw-tagline {
+      font-size: 0.78rem;
+      color: #7a8099;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    .pw-divider {
+      width: 40px;
+      height: 2px;
+      background: #4ab3c8;
+      margin: 0 auto 2rem;
+      border-radius: 2px;
+    }
+
+    .pw-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      color: #f0f2f8;
+      margin-bottom: 0.5rem;
+    }
+
+    .pw-subtitle {
+      font-size: 0.9rem;
+      color: #7a8099;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .pw-input-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .pw-input {
+      width: 100%;
+      background: #0a1318;
+      border: 1px solid #252a38;
+      border-radius: 8px;
+      color: #f0f2f8;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      padding: 0.85rem 1rem;
+      text-align: center;
+      letter-spacing: 0.15em;
+      transition: border-color 0.2s;
+    }
+
+    .pw-input:focus { outline: none; border-color: #4ab3c8; }
+    .pw-input::placeholder { letter-spacing: 0.05em; color: #7a8099; }
+
+    .pw-btn {
+      width: 100%;
+      background: #4ab3c8;
+      color: #0a1318;
+      border: none;
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      letter-spacing: 0.05em;
+    }
+
+    .pw-btn:hover { background: #3a9db8; transform: translateY(-1px); }
+
+    .pw-error {
+      color: #f87171;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    .pw-footer {
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: #7a8099;
+    }
+
+    .pw-footer span { color: #4ab3c8; }
+  </style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="passwordScreen">
+  <div class="pw-card">
+    <div class="pw-logo">AKWAMAN<span>.</span></div>
+    <div class="pw-tagline">Powered by Akwaman Tech</div>
+    <div class="pw-divider"></div>
+    <h2 class="pw-title">B&H Rides Preview</h2>
+    <p class="pw-subtitle">This site is currently in preview mode.<br>Enter your access code to continue.</p>
+    <div class="pw-input-wrap">
+      <input type="password" id="pwInput" class="pw-input" placeholder="Enter access code" autocomplete="off">
+    </div>
+    <button class="pw-btn" onclick="checkPassword()">Access Site</button>
+    <p class="pw-error" id="pwError">Incorrect code. Please try again.</p>
+    <div class="pw-footer">Site built by <span>Akwaman Tech</span> · akwaman.net</div>
+  </div>
+</div>
+
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">B<span>&</span>H Rides</div>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#request" class="cta-link">Request a Ride</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="home" class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <span class="hero-badge">✈ Community Airport Service · Frisco, TX</span>
+    <h1>Your Neighbors.<br><em>Your Ride.</em></h1>
+    <p class="hero-sub">Brian &amp; Hilary Hinchcliffe — trusted airport transportation for our community.</p>
+    <div class="hero-price">
+      <span class="amount">$60</span>
+      <span class="label">flat rate · one way · DFW or DAL</span>
+    </div>
+    <div class="hero-actions">
+      <a href="#request" class="btn-primary">Request a Ride</a>
+      <a href="#about" class="btn-ghost">Learn More</a>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="about">
+  <span class="section-label">About the Service</span>
+  <h2 class="section-title">Simple, Reliable, Neighborly</h2>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">✈️</div>
+      <h3>Airport Only</h3>
+      <p>We specialize exclusively in airport runs — DFW International and Dallas Love Field (DAL). No distractions, just dependable rides.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💵</div>
+      <h3>Flat $60 Rate</h3>
+      <p>One simple price. No surge pricing, no hidden fees. $60 flat, one-way, every time — pay by Venmo, Zelle, or cash.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📅</div>
+      <h3>Book in Advance</h3>
+      <p>Reserve your ride at least 24 hours ahead so we can plan around your schedule and make sure we're available.</p>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <h3>Service Details</h3>
+    <ul class="info-list">
+      <li><strong>Service Area:</strong> Frisco Lakes &amp; The Tribute · Frisco, TX</li>
+      <li><strong>Destinations:</strong> DFW International Airport &amp; Dallas Love Field (DAL)</li>
+      <li><strong>Rate:</strong> $60 flat — one way, no exceptions</li>
+      <li><strong>Booking:</strong> Minimum 24 hours advance notice required</li>
+      <li><strong>Payment:</strong> Venmo, Zelle, or Cash</li>
+      <li><strong>Contact:</strong> Brian <a href="tel:9728248330" style="color:var(--blue);">972-824-8330</a> · Hilary <a href="tel:9728221457" style="color:var(--blue);">972-822-1457</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <h2>Ready to Book Your Airport Ride?</h2>
+  <p>Fill out the short form and Brian or Hilary will confirm within a few hours.</p>
+  <a href="#request" class="btn-primary">Request a Ride Now</a>
+</section>
+
+<!-- FORM SECTION -->
+<section id="request" class="form-section">
+  <div class="form-wrap">
+    <div class="form-header" id="formHeader">
+      <span class="section-label">Book Your Trip</span>
+      <h1>Request a Ride</h1>
+      <p>24-hour advance notice required · $60 flat · DFW or DAL only</p>
+    </div>
+
+    <form id="rideForm" class="ride-form">
+
+      <!-- YOUR INFO -->
+      <div class="form-block">
+        <div class="form-block-title">Your Information</div>
+        <div class="form-row">
+          <div class="field">
+            <label for="name">Full Name *</label>
+            <input type="text" id="name" name="name" required placeholder="Jane Smith">
+          </div>
+          <div class="field">
+            <label for="unit">Address *</label>
+            <input type="text" id="unit" name="unit" required placeholder="e.g. 123 Lakeview Dr, Frisco TX">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="phone">Phone Number *</label>
+            <input type="tel" id="phone" name="phone" required placeholder="(972) 555-0100">
+          </div>
+          <div class="field">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="optional">
+          </div>
+        </div>
+      </div>
+
+      <!-- RIDE DETAILS -->
+      <div class="form-block">
+        <div class="form-block-title">Ride Details</div>
+
+        <div class="field">
+          <label for="pickup">Pickup Location *</label>
+          <select id="pickup" name="pickup" required>
+            <option value="">Select pickup location</option>
+            <option value="Address on file">Address on file</option>
+            <option value="other">Other (specify below)</option>
+          </select>
+        </div>
+
+        <div class="field" id="otherPickupField" style="display:none;">
+          <label for="otherPickup">Other Pickup Address *</label>
+          <input type="text" id="otherPickup" name="otherPickup" placeholder="Enter full address">
+        </div>
+
+        <div class="field">
+          <label for="destination">Airport Destination *</label>
+          <select id="destination" name="destination" required>
+            <option value="">Select airport</option>
+            <option value="DFW International Airport">DFW International Airport</option>
+            <option value="Dallas Love Field (DAL)">Dallas Love Field (DAL)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="date">Date Needed *</label>
+            <input type="date" id="date" name="date" required>
+          </div>
+          <div class="field">
+            <label for="time">Pickup Time *</label>
+            <input type="time" id="time" name="time" required>
+            <small>Allow extra time for check-in and security.</small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="passengers">Number of Passengers *</label>
+          <select id="passengers" name="passengers" required>
+            <option value="">Select number of passengers</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6+">6+</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PREFERENCES -->
+      <div class="form-block">
+        <div class="form-block-title">Preferences</div>
+
+        <div class="field">
+          <label for="notes">Special Requests / Notes</label>
+          <textarea id="notes" name="notes" rows="3" placeholder="Luggage count, accessibility needs, early flight details, etc."></textarea>
+        </div>
+      </div>
+
+      <!-- PAYMENT -->
+      <div class="form-block">
+        <div class="form-block-title">Payment</div>
+        <div class="price-display">
+          <span class="amount">$60</span>
+          <div class="price-note">
+            <strong>Flat rate — one way</strong><br>
+            Due at time of ride. Venmo, Zelle, or Cash.
+          </div>
+        </div>
+        <div class="field">
+          <label for="paymentMethod">Payment Method *</label>
+          <select id="paymentMethod" name="paymentMethod" required>
+            <option value="">Select payment method</option>
+            <option value="Venmo">Venmo</option>
+            <option value="Zelle">Zelle</option>
+            <option value="Cash">Cash</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CONSENT -->
+      <div class="form-block">
+        <div class="form-block-title">Consent</div>
+        <div class="consent-field">
+          <input type="checkbox" id="smsConsent" name="smsConsent" required>
+          <label for="smsConsent">
+            By submitting this form I agree to receive SMS text messages from B&H Rides regarding my ride request, including booking confirmations and status updates. Message and data rates may apply. Reply STOP to opt out at any time. I have read and agree to the
+            <a href="/terms.html" target="_blank">Terms of Service</a> and
+            <a href="/privacy.html" target="_blank">Privacy Policy</a>.
+          </label>
+        </div>
+      </div>
+
+      <!-- SUBMIT -->
+      <div class="form-footer">
+        <button type="submit" class="btn-submit" id="submitBtn">Submit Ride Request</button>
+        <p class="form-note">Brian or Hilary will confirm within a few hours. Urgent? Call Brian <a href="tel:9728248330" style="color:var(--blue);">972-824-8330</a> or Hilary <a href="tel:9728221457" style="color:var(--blue);">972-822-1457</a>.</p>
+      </div>
+    </form>
+
+    <!-- SUCCESS -->
+    <div id="successCard" class="success-card">
+      <div class="check">✅</div>
+      <h2>Ride Request Submitted!</h2>
+      <p>Thank you! Brian or Hilary will reach out shortly to confirm your ride.</p>
+      <p>Questions? Call Brian <strong>972-824-8330</strong> or Hilary <strong>972-822-1457</strong></p>
+      <a href="#home" class="btn-primary" style="margin-top:1.75rem;">Back to Home</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>&copy; 2025 Brian &amp; Hilary Hinchcliffe · Community Airport Service · Frisco, TX</p>
+  <p>Brian: <a href="tel:9728248330">972-824-8330</a> · Hilary: <a href="tel:9728221457">972-822-1457</a></p>
+</footer>
+
+<script>
+// ============================================================
+//  CONFIG — swap these before going live
+// ============================================================
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xjgldejv";
+
+// ── Supabase — replace with your real credentials ──
+const SUPABASE_URL      = 'https://ohiutjikhkxiwmgqvncb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_-Olfy7RsSU1JviPcFvjx0g_TA3Mhu8k';
+
+// ── Flat Rate ──
+const FLAT_RATE = "$60";
+// Replace YOUR_FORM_ID with the ID from your Formspree dashboard
+// Formspree will email ride requests to whatever address you set.
+
+// ── Twilio SMS ──────────────────────────────────────────────
+// SMS notifications are sent via a serverless function you deploy
+// separately (Netlify Functions, Vercel, Cloudflare Workers, etc.).
+// That function wraps the Twilio REST API with these credentials:
+//
+//   TWILIO_ACCOUNT_SID  = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+//   TWILIO_AUTH_TOKEN   = "your_auth_token"
+//   TWILIO_FROM_NUMBER  = "+1xxxxxxxxxx"  // your Twilio number
+//   NOTIFY_NUMBERS      = ["+1972xxxxxxx", "+1972xxxxxxx"]  // Brian & Hilary
+//
+// Once deployed, uncomment and update the fetch block in the
+// submission handler below.
+// ============================================================
+
+// ── Password Screen (global so onclick can reach it) ──
+function checkPassword() {
+  const input = document.getElementById('pwInput').value;
+  const error = document.getElementById('pwError');
+  if (input.trim() === 'bhrides2025') {
+    const screen = document.getElementById('passwordScreen');
+    screen.style.opacity = '0';
+    screen.style.pointerEvents = 'none';
+    setTimeout(() => { screen.style.display = 'none'; }, 300);
+    sessionStorage.setItem('bh_access', 'granted');
+  } else {
+    error.style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ── Password Screen ──
+  function checkPassword() {
+    const input = document.getElementById('pwInput').value;
+    const error = document.getElementById('pwError');
+    if (input.trim() === 'bhrides2025') {
+      const screen = document.getElementById('passwordScreen');
+      screen.style.opacity = '0';
+      screen.style.pointerEvents = 'none';
+      setTimeout(() => { screen.style.display = 'none'; }, 300);
+      sessionStorage.setItem('bh_access', 'granted');
+    } else {
+      error.style.display = 'block';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+
+  // Allow Enter key
+  document.getElementById('pwInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkPassword();
+  });
+
+  // Check if already authenticated this session
+  if (sessionStorage.getItem('bh_access') === 'granted') {
+    document.getElementById('passwordScreen').style.display = 'none';
+  }
+
+
+
+  // ── Minimum date: tomorrow ──
+  const dateInput = document.getElementById('date');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  dateInput.min = tomorrow.toISOString().split('T')[0];
+
+  // ── Other pickup toggle ──
+  document.getElementById('pickup').addEventListener('change', function () {
+    const wrap  = document.getElementById('otherPickupField');
+    const input = document.getElementById('otherPickup');
+    const show  = this.value === 'other';
+    wrap.style.display = show ? 'block' : 'none';
+    input.required = show;
+    if (!show) input.value = '';
+  });
+
+  // ── Phone formatter ──
+  document.getElementById('phone').addEventListener('input', function (e) {
+    let v = e.target.value.replace(/\D/g, '');
+    if      (v.length <= 3) v = `(${v}`;
+    else if (v.length <= 6) v = `(${v.slice(0,3)}) ${v.slice(3)}`;
+    else                    v = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6,10)}`;
+    e.target.value = v;
+  });
+
+  // ── Radio pill styling ──
+  document.querySelectorAll('.radio-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const name = opt.querySelector('input').name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r =>
+        r.closest('.radio-opt').classList.remove('selected')
+      );
+      opt.classList.add('selected');
+    });
+  });
+
+  // ── Form submission ──
+  document.getElementById('rideForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    // Date guard
+    const picked = new Date(dateInput.value + 'T00:00:00');
+    const minDay = new Date();
+    minDay.setDate(minDay.getDate() + 1);
+    minDay.setHours(0, 0, 0, 0);
+    if (picked < minDay) {
+      alert('Please select a date at least 24 hours in advance.');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>&nbsp;Submitting…';
+
+    // Build data object
+    const data = Object.fromEntries(new FormData(this).entries());
+    data.flatRate      = FLAT_RATE + ' one-way';
+    data.smsConsent    = 'Yes — consented at time of submission';
+    data.submittedAt   = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
+
+    // Human-readable SMS body (used by your serverless function)
+    data._smsBody = [
+      `🚗 New B&H Ride Request`,
+      `Name: ${data.name}`,
+      `Address: ${data.unit}`,
+      `Phone: ${data.phone}`,
+      `Airport: ${data.destination}`,
+      `Date: ${data.date} at ${data.time}`,
+      `Driver: ${data.driver}`,
+      `Payment: ${data.paymentMethod}`,
+      `Notes: ${data.notes || 'None'}`,
+      `Submitted: ${data.submittedAt}`
+    ].join('\n');
+
+    try {
+      // ── Email via Formspree ──
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body:    JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('Formspree error');
+
+      // ── Save to Supabase (non-blocking) ──
+      fetch(`${SUPABASE_URL}/rest/v1/ride_requests`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          name:           data.name,
+          address:        data.unit,
+          phone:          data.phone,
+          email:          data.email || null,
+          pickup:         data.pickup,
+          other_pickup:   data.otherPickup || null,
+          destination:    data.destination,
+          ride_date:      data.date,
+          ride_time:      data.time,
+          passengers:     data.passengers,
+          payment_method: data.paymentMethod,
+          flat_rate:      FLAT_RATE,
+          notes:          data.notes || null,
+          submitted_at:   data.submittedAt
+        })
+      }).catch(err => console.error('Supabase error:', err));
+
+      // ── SMS via Twilio (non-blocking) ──
+      fetch('/.netlify/functions/notify-sms', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ message: data._smsBody })
+      }).catch(err => console.error('SMS error:', err));
+
+      // ── Show success ──
+      document.getElementById('rideForm').style.display   = 'none';
+      document.getElementById('formHeader').style.display = 'none';
+      const card = document.getElementById('successCard');
+      card.style.display = 'block';
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong. Please call 972-824-8000 to book directly.');
+      btn.disabled = false;
+      btn.innerHTML = 'Submit Ride Request';
+    }
+  });
+
+  // ── Smooth scroll ──
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const t = document.querySelector(a.getAttribute('href'));
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+});
+</script>
+</body>
+</html>
