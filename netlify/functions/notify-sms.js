@@ -30,9 +30,15 @@ exports.handler = async function (event) {
   const authToken  = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_FROM_NUMBER;
 
+  console.log('Account SID present:', !!accountSid);
+  console.log('Auth Token present:', !!authToken);
+  console.log('From Number:', fromNumber);
+
   const recipients = data.to
     ? [data.to]
     : [process.env.NOTIFY_NUMBER_BRIAN, process.env.NOTIFY_NUMBER_HILARY];
+
+  console.log('Recipients:', recipients);
 
   const message = data.message;
   if (!message) return { statusCode: 400, body: 'No message provided' };
@@ -51,8 +57,10 @@ exports.handler = async function (event) {
         body
       });
       const result = await res.json();
+      console.log('Twilio response for', to, ':', JSON.stringify(result));
       results.push({ to, ok: res.ok, sid: result.sid, error: result.message });
     } catch (err) {
+      console.log('Fetch error for', to, ':', err.message);
       results.push({ to, ok: false, error: err.message });
     }
   }
