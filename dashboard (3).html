@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B&H Rides — Owner Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --night:    #0d0f14;
+      --deep:     #13161f;
+      --card:     #1a1e2b;
+      --border:   #252a38;
+      --blue:     #3b82f6;
+      --blue-dim: #1d4ed8;
+      --gold:     #f59e0b;
+      --white:    #f0f2f8;
+      --muted:    #7a8099;
+      --green:    #10b981;
+      --red:      #ef4444;
+      --yellow:   #f59e0b;
+      --font-body: 'DM Sans', sans-serif;
+      --font-display: 'DM Serif Display', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--night); color: var(--white); line-height: 1.5; overflow-x: hidden; }
+
+    /* ── PASSWORD SCREEN ── */
+    #pwScreen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--night);
+      display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+      transition: opacity 0.3s ease;
+    }
+    .pw-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 3rem 2.5rem; max-width: 400px; width: 100%; text-align: center; }
+    .pw-logo { font-size: 1.5rem; font-weight: 800; color: var(--white); letter-spacing: 0.08em; margin-bottom: 0.2rem; }
+    .pw-logo span { color: #4ab3c8; }
+    .pw-tag { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2rem; }
+    .pw-divider { width: 40px; height: 2px; background: var(--blue); margin: 0 auto 2rem; border-radius: 2px; }
+    .pw-title { font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.5rem; }
+    .pw-sub { font-size: 0.9rem; color: var(--muted); margin-bottom: 1.75rem; }
+    .pw-input { width: 100%; background: var(--deep); border: 1px solid var(--border); border-radius: 8px; color: var(--white); font-family: var(--font-body); font-size: 1rem; padding: 0.8rem 1rem; text-align: center; letter-spacing: 0.12em; margin-bottom: 0.85rem; transition: border-color 0.2s; }
+    .pw-input:focus { outline: none; border-color: var(--blue); }
+    .pw-input::placeholder { letter-spacing: 0.05em; color: var(--muted); }
+    .pw-btn { width: 100%; background: var(--blue); color: var(--white); border: none; border-radius: 8px; padding: 0.85rem; font-family: var(--font-body); font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .pw-btn:hover { background: var(--blue-dim); }
+    .pw-error { color: #f87171; font-size: 0.85rem; margin-top: 0.75rem; display: none; }
+    .pw-footer { margin-top: 2rem; font-size: 0.75rem; color: var(--muted); }
+    .pw-footer span { color: #4ab3c8; }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; min-height: 100vh; }
+
+    /* topbar */
+    .topbar { background: var(--deep); border-bottom: 1px solid var(--border); padding: 0.9rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar-logo { font-size: 1.1rem; font-weight: 700; }
+    .topbar-logo span { color: var(--gold); }
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .topbar-badge { background: rgba(239,68,68,0.15); color: #f87171; font-size: 0.78rem; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 50px; border: 1px solid rgba(239,68,68,0.25); }
+    .topbar-badge.hidden { display: none; }
+    .logout-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; padding: 0.35rem 0.75rem; border-radius: 8px; cursor: pointer; font-family: var(--font-body); transition: color 0.2s, border-color 0.2s; }
+    .logout-btn:hover { color: var(--white); border-color: var(--muted); }
+
+    /* tabs */
+    .tabs { background: var(--deep); border-bottom: 1px solid var(--border); padding: 0 1.5rem; display: flex; gap: 0; }
+    .tab { padding: 0.85rem 1.25rem; font-size: 0.88rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; white-space: nowrap; }
+    .tab.active { color: var(--white); border-bottom-color: var(--blue); }
+    .tab:hover { color: var(--white); }
+
+    /* main */
+    .main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    /* metrics */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1.5rem; }
+    @media (max-width: 700px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+    .metric { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.25rem; }
+    .metric-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .metric-value { font-family: var(--font-display); font-size: 2rem; color: var(--white); }
+    .metric-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+    .metric-sub.up { color: var(--green); }
+    .metric-sub.warn { color: var(--yellow); }
+
+    /* tab panels */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ride cards */
+    .ride-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.85rem; }
+    .ride-card:last-child { margin-bottom: 0; }
+    .ride-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; gap: 1rem; }
+    .ride-name { font-size: 1rem; font-weight: 600; }
+    .ride-addr { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+    .status-pill { font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.7rem; border-radius: 50px; white-space: nowrap; flex-shrink: 0; }
+    .s-pending  { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .s-confirmed{ background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .s-declined { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .s-completed{ background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+    .ride-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+    .chip { font-size: 0.8rem; color: var(--muted); background: var(--deep); border: 1px solid var(--border); padding: 0.25rem 0.65rem; border-radius: 6px; }
+    .chip strong { color: var(--white); }
+    .ride-notes { font-size: 0.82rem; color: var(--muted); background: var(--deep); border-radius: 6px; padding: 0.6rem 0.75rem; margin-bottom: 0.9rem; border-left: 3px solid var(--border); }
+    .ride-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .btn { font-size: 0.82rem; font-weight: 600; padding: 0.5rem 1rem; border-radius: 8px; border: none; cursor: pointer; font-family: var(--font-body); transition: opacity 0.2s, transform 0.1s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.97); }
+    .btn-accept   { background: var(--green);  color: #fff; }
+    .btn-decline  { background: var(--red);    color: #fff; }
+    .btn-complete { background: var(--blue);   color: #fff; }
+    .btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* empty state */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty p { font-size: 0.95rem; }
+
+    /* earnings table */
+    .earnings-table { width: 100%; border-collapse: collapse; }
+    .earnings-table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 0.75rem 0.75rem; font-weight: 500; }
+    .earnings-table td { padding: 0.85rem 0.75rem; font-size: 0.88rem; border-top: 1px solid var(--border); }
+    .earnings-table tr:first-child td { border-top: none; }
+    .earn-name { font-weight: 500; color: var(--white); }
+    .earn-detail { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+    .earn-amt { font-weight: 600; color: var(--green); }
+
+    /* settings */
+    .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .settings-title { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 0.9rem; font-weight: 500; }
+    .setting-sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+    .setting-input { background: var(--deep); border: 1px solid var(--border); border-radius: 8px; color: var(--white); font-family: var(--font-body); font-size: 0.95rem; padding: 0.5rem 0.75rem; width: 120px; text-align: right; }
+    .setting-input:focus { outline: none; border-color: var(--blue); }
+    .save-btn { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 0.5rem 1.25rem; font-family: var(--font-body); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .save-btn:hover { background: var(--blue-dim); }
+
+    /* loading */
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* toast */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.25rem; font-size: 0.88rem; color: var(--white); z-index: 9999; opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; max-width: 320px; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pwScreen">
+  <div class="pw-card">
+    <div class="pw-logo">AKWAMAN<span>.</span></div>
+    <div class="pw-tag">Powered by Akwaman Tech</div>
+    <div class="pw-divider"></div>
+    <h2 class="pw-title">Owner Dashboard</h2>
+    <p class="pw-sub">B&H Rides · Frisco, TX</p>
+    <input type="password" id="pwInput" class="pw-input" placeholder="Enter access code" autocomplete="off">
+    <button class="pw-btn" onclick="checkPw()">Access Dashboard</button>
+    <p class="pw-error" id="pwError">Incorrect code. Please try again.</p>
+    <div class="pw-footer">Built by <span>Akwaman Tech</span> · akwaman.net</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo">B<span>&</span>H Rides <span style="font-weight:400;color:var(--muted);font-size:0.85rem;">· Owner Dashboard</span></div>
+    <div class="topbar-right">
+      <span class="topbar-badge hidden" id="pendingBadge">0 pending</span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('requests')">Ride Requests</div>
+    <div class="tab" onclick="switchTab('upcoming')">Upcoming</div>
+    <div class="tab" onclick="switchTab('earnings')">Earnings</div>
+    <div class="tab" onclick="switchTab('settings')">Settings</div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Earned this month</div>
+        <div class="metric-value" id="metricEarned">$0</div>
+        <div class="metric-sub up" id="metricRidesCount">0 completed rides</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Upcoming rides</div>
+        <div class="metric-value" id="metricUpcoming">0</div>
+        <div class="metric-sub" id="metricNextRide">None scheduled</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Pending requests</div>
+        <div class="metric-value" id="metricPending">0</div>
+        <div class="metric-sub warn" id="metricPendingSub">awaiting response</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Flat rate</div>
+        <div class="metric-value" id="metricRate">$60</div>
+        <div class="metric-sub">one way · editable</div>
+      </div>
+    </div>
+
+    <!-- REQUESTS TAB -->
+    <div class="tab-panel active" id="panel-requests">
+      <div class="loading" id="requestsLoading"><div class="spinner"></div></div>
+      <div id="requestsList"></div>
+    </div>
+
+    <!-- UPCOMING TAB -->
+    <div class="tab-panel" id="panel-upcoming">
+      <div class="loading" id="upcomingLoading"><div class="spinner"></div></div>
+      <div id="upcomingList"></div>
+    </div>
+
+    <!-- EARNINGS TAB -->
+    <div class="tab-panel" id="panel-earnings">
+      <div class="loading" id="earningsLoading"><div class="spinner"></div></div>
+      <div id="earningsList"></div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-card">
+        <div class="settings-title">Pricing</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Flat rate</div>
+            <div class="setting-sub">One-way fare charged to all riders</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <input type="text" class="setting-input" id="rateInput" value="$60">
+            <button class="save-btn" onclick="saveRate()">Save</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">Contact Numbers</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Brian</div>
+            <div class="setting-sub">972-824-8330</div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Hilary</div>
+            <div class="setting-sub">972-822-1457</div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-title">Notifications</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Email (Formspree)</div>
+            <div class="setting-sub">Brian.Hinchliffe@gmail.com</div>
+          </div>
+          <span style="color:var(--green);font-size:0.85rem;font-weight:600;">Active</span>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">SMS (Twilio)</div>
+            <div class="setting-sub">Both numbers · via Netlify function</div>
+          </div>
+          <span style="color:var(--green);font-size:0.85rem;font-weight:600;">Active</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  CONFIG — replace with your real Supabase credentials
+//  Add these to Netlify environment variables too:
+//    SUPABASE_URL   → your project URL
+//    SUPABASE_ANON_KEY → your anon/public key
+// ============================================================
+const SUPABASE_URL      = 'https://ohiutjikhkxiwmgqvncb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_-Olfy7RsSU1JviPcFvjx0g_TA3Mhu8k';
+const DASHBOARD_PASSWORD = 'bhrides2025';
+
+// Twilio notify endpoint
+const NOTIFY_SMS_URL = '/.netlify/functions/notify-sms';
+
+// ============================================================
+//  SUPABASE HELPERS
+// ============================================================
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Supabase error');
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function getRequests()  { return sbFetch('ride_requests?status=eq.pending&order=created_at.desc'); }
+async function getUpcoming()  { return sbFetch('ride_requests?status=eq.confirmed&order=ride_date.asc,ride_time.asc'); }
+async function getCompleted() { return sbFetch('ride_requests?status=eq.completed&order=completed_at.desc'); }
+async function getAllPending() { return sbFetch('ride_requests?status=eq.pending'); }
+
+async function updateStatus(id, status) {
+  return sbFetch(`ride_requests?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, responded_at: new Date().toISOString() })
+  });
+}
+
+async function markComplete(id) {
+  return sbFetch(`ride_requests?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'completed', completed_at: new Date().toISOString() })
+  });
+}
+
+// ============================================================
+//  SMS NOTIFICATIONS
+// ============================================================
+async function sendSMS(message) {
+  try {
+    await fetch(NOTIFY_SMS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+  } catch (e) {
+    console.error('SMS error:', e);
+  }
+}
+
+async function notifyRider(ride, action) {
+  if (!ride.phone) return;
+  const date  = new Date(ride.ride_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time  = formatTime(ride.ride_time);
+  let msg;
+  if (action === 'confirmed') {
+    msg = `Hi ${ride.name.split(' ')[0]}, your B&H Rides request for ${date} at ${time} to ${ride.destination} has been confirmed! See you then. Questions? Call 972-824-8330.`;
+  } else {
+    msg = `Hi ${ride.name.split(' ')[0]}, unfortunately your B&H Rides request for ${date} at ${time} could not be accommodated. Please call 972-824-8330 to discuss alternatives.`;
+  }
+  await sendSMS(msg);
+}
+
+// ============================================================
+//  PASSWORD
+// ============================================================
+function checkPw() {
+  const val = document.getElementById('pwInput').value.trim();
+  const err = document.getElementById('pwError');
+  if (val === DASHBOARD_PASSWORD) {
+    sessionStorage.setItem('bh_dash', 'granted');
+    const screen = document.getElementById('pwScreen');
+    screen.style.opacity = '0';
+    screen.style.pointerEvents = 'none';
+    setTimeout(() => {
+      screen.style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      initDashboard();
+    }, 300);
+  } else {
+    err.style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPw();
+});
+
+function logout() {
+  sessionStorage.removeItem('bh_dash');
+  location.reload();
+}
+
+if (sessionStorage.getItem('bh_dash') === 'granted') {
+  document.getElementById('pwScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  initDashboard();
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['requests','upcoming','earnings','settings'][i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `panel-${name}`);
+  });
+  if (name === 'requests') loadRequests();
+  if (name === 'upcoming') loadUpcoming();
+  if (name === 'earnings') loadEarnings();
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+async function initDashboard() {
+  loadRequests();
+  updateMetrics();
+}
+
+async function updateMetrics() {
+  try {
+    const [pending, upcoming, completed] = await Promise.all([
+      sbFetch('ride_requests?status=eq.pending'),
+      sbFetch('ride_requests?status=eq.confirmed&order=ride_date.asc'),
+      sbFetch('ride_requests?status=eq.completed')
+    ]);
+
+    // Pending
+    const pCount = pending.length;
+    document.getElementById('metricPending').textContent = pCount;
+    const badge = document.getElementById('pendingBadge');
+    if (pCount > 0) {
+      badge.textContent = `${pCount} pending`;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    // Upcoming
+    document.getElementById('metricUpcoming').textContent = upcoming.length;
+    if (upcoming.length > 0) {
+      const next = upcoming[0];
+      const d = new Date(next.ride_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      document.getElementById('metricNextRide').textContent = `Next: ${d} at ${formatTime(next.ride_time)}`;
+    }
+
+    // Earnings this month
+    const now = new Date();
+    const thisMonth = completed.filter(r => {
+      if (!r.completed_at) return false;
+      const d = new Date(r.completed_at);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const rate = parseInt((localStorage.getItem('bh_rate') || '60').replace(/\D/g, '')) || 60;
+    const earned = thisMonth.length * rate;
+    document.getElementById('metricEarned').textContent = `$${earned}`;
+    document.getElementById('metricRidesCount').textContent = `${thisMonth.length} completed ride${thisMonth.length !== 1 ? 's' : ''}`;
+    document.getElementById('metricRate').textContent = `$${rate}`;
+
+  } catch (e) {
+    console.error('Metrics error:', e);
+  }
+}
+
+// ============================================================
+//  REQUESTS
+// ============================================================
+async function loadRequests() {
+  const loading = document.getElementById('requestsLoading');
+  const list    = document.getElementById('requestsList');
+  loading.style.display = 'block';
+  list.innerHTML = '';
+
+  try {
+    const rides = await getRequests();
+    loading.style.display = 'none';
+
+    if (!rides.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>No pending requests. You're all caught up!</p></div>`;
+      return;
+    }
+
+    rides.forEach(r => list.appendChild(buildRideCard(r, 'pending')));
+  } catch (e) {
+    loading.style.display = 'none';
+    list.innerHTML = `<div class="empty"><p>Could not load requests. Check your Supabase connection.</p></div>`;
+  }
+}
+
+function buildRideCard(r, type) {
+  const div = document.createElement('div');
+  div.className = 'ride-card';
+  div.id = `ride-${r.id}`;
+  div._rideData = r;
+
+  const date    = new Date(r.ride_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time    = formatTime(r.ride_time);
+  const pickup  = r.pickup === 'other' ? (r.other_pickup || 'See notes') : r.pickup;
+  const notes   = r.notes ? `<div class="ride-notes">📝 ${r.notes}</div>` : '';
+
+  let actions = '';
+  if (type === 'pending') {
+    actions = `
+      <button class="btn btn-accept"  onclick="handleAction('${r.id}', 'confirmed')">✓ Accept</button>
+      <button class="btn btn-decline" onclick="handleAction('${r.id}', 'declined')">✗ Decline</button>`;
+  } else if (type === 'upcoming') {
+    actions = `<button class="btn btn-complete" onclick="handleComplete('${r.id}')">Mark as Completed</button>`;
+  }
+
+  div.innerHTML = `
+    <div class="ride-top">
+      <div>
+        <div class="ride-name">${r.name}</div>
+        <div class="ride-addr">${r.address}</div>
+      </div>
+      <span class="status-pill s-${r.status}">${capitalize(r.status)}</span>
+    </div>
+    <div class="ride-chips">
+      <span class="chip">📅 <strong>${date}</strong></span>
+      <span class="chip">🕐 <strong>${time}</strong></span>
+      <span class="chip">✈ <strong>${r.destination}</strong></span>
+      <span class="chip">👥 <strong>${r.passengers} pax</strong></span>
+      <span class="chip">📍 ${pickup}</span>
+      <span class="chip">💳 ${r.payment_method}</span>
+      <span class="chip">📞 <a href="tel:${r.phone.replace(/\D/g,'')}" style="color:var(--blue);text-decoration:none;">${r.phone}</a></span>
+      ${r.email ? `<span class="chip">✉ ${r.email}</span>` : ''}
+    </div>
+    ${notes}
+    <div class="ride-actions">${actions}</div>`;
+
+  return div;
+}
+
+async function handleAction(id, status) {
+  const card = document.getElementById(`ride-${id}`);
+  const btns = card.querySelectorAll('.btn');
+  btns.forEach(b => b.disabled = true);
+
+  // ── Conflict check before confirming ──
+  if (status === 'confirmed') {
+    try {
+      const ride = card._rideData;
+      if (ride) {
+        const checkRes = await sbFetch(
+          `ride_requests?ride_date=eq.${ride.ride_date}&ride_time=eq.${ride.ride_time}&status=eq.confirmed&id=neq.${id}&select=id,name`
+        );
+        if (checkRes && checkRes.length > 0) {
+          const conflict = checkRes[0];
+          const proceed = confirm(`⚠️ Conflict: ${conflict.name} already has a confirmed ride at this date and time. Confirm anyway?`);
+          if (!proceed) {
+            btns.forEach(b => b.disabled = false);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Conflict check failed silently:', err);
+    }
+  }
+
+  try {
+    const [updated] = await updateStatus(id, status);
+    await notifyRider(updated, status);
+
+    card.remove();
+    showToast(status === 'confirmed' ? '✅ Ride confirmed — rider notified!' : '❌ Ride declined — rider notified.', status === 'confirmed' ? 'success' : 'error');
+    updateMetrics();
+
+    // If no more cards
+    const list = document.getElementById('requestsList');
+    if (!list.children.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><p>No pending requests. You're all caught up!</p></div>`;
+    }
+  } catch (e) {
+    showToast('Something went wrong. Try again.', 'error');
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// ============================================================
+//  UPCOMING
+// ============================================================
+async function loadUpcoming() {
+  const loading = document.getElementById('upcomingLoading');
+  const list    = document.getElementById('upcomingList');
+  loading.style.display = 'block';
+  list.innerHTML = '';
+
+  try {
+    const rides = await getUpcoming();
+    loading.style.display = 'none';
+
+    if (!rides.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>No upcoming rides confirmed yet.</p></div>`;
+      return;
+    }
+
+    rides.forEach(r => list.appendChild(buildRideCard(r, 'upcoming')));
+  } catch (e) {
+    loading.style.display = 'none';
+    list.innerHTML = `<div class="empty"><p>Could not load upcoming rides.</p></div>`;
+  }
+}
+
+async function handleComplete(id) {
+  const card = document.getElementById(`ride-${id}`);
+  const btn  = card.querySelector('.btn-complete');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    await markComplete(id);
+    card.remove();
+    showToast('🎉 Ride marked as completed!', 'success');
+    updateMetrics();
+
+    const list = document.getElementById('upcomingList');
+    if (!list.children.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>No upcoming rides confirmed yet.</p></div>`;
+    }
+  } catch (e) {
+    showToast('Something went wrong. Try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Mark as Completed';
+  }
+}
+
+// ============================================================
+//  EARNINGS
+// ============================================================
+async function loadEarnings() {
+  const loading = document.getElementById('earningsLoading');
+  const list    = document.getElementById('earningsList');
+  loading.style.display = 'block';
+  list.innerHTML = '';
+
+  try {
+    const rides = await getCompleted();
+    loading.style.display = 'none';
+    const rate  = parseInt((localStorage.getItem('bh_rate') || '60').replace(/\D/g, '')) || 60;
+    const total = rides.length * rate;
+
+    if (!rides.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">💰</div><p>No completed rides yet.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = `
+      <div class="ride-card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Total earned</div>
+            <div style="font-family:var(--font-display);font-size:2.2rem;color:var(--green);">$${total}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.3rem;">Total rides</div>
+            <div style="font-size:1.8rem;font-weight:600;">${rides.length}</div>
+          </div>
+        </div>
+      </div>
+      <div class="ride-card" style="padding:0;overflow:hidden;">
+        <table class="earnings-table">
+          <thead>
+            <tr>
+              <th style="padding-top:1rem;padding-left:1.25rem;">Rider</th>
+              <th>Airport</th>
+              <th>Date</th>
+              <th>Payment</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rides.map(r => {
+              const d = new Date(r.ride_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              return `<tr>
+                <td><div class="earn-name">${r.name}</div><div class="earn-detail">${r.address}</div></td>
+                <td>${r.destination}</td>
+                <td>${d} · ${formatTime(r.ride_time)}</td>
+                <td>${r.payment_method}</td>
+                <td class="earn-amt">$${rate}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    loading.style.display = 'none';
+    list.innerHTML = `<div class="empty"><p>Could not load earnings.</p></div>`;
+  }
+}
+
+// ============================================================
+//  SETTINGS
+// ============================================================
+function saveRate() {
+  const val = document.getElementById('rateInput').value.trim();
+  localStorage.setItem('bh_rate', val);
+  document.getElementById('metricRate').textContent = val;
+  showToast('✅ Flat rate updated!', 'success');
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hr = parseInt(h);
+  return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
