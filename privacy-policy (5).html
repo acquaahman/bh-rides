@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — B&H Rides</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0a0f1a;
+    --deep: #111827;
+    --card: #1a2236;
+    --border: #1e3a5f;
+    --blue: #2563eb;
+    --gold: #f59e0b;
+    --white: #f8fafc;
+    --muted: #94a3b8;
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'DM Serif Display', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-body); background: var(--night); color: var(--white); line-height: 1.7; }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,15,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .nav-brand {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--white);
+    text-decoration: none;
+  }
+
+  .nav-brand span { color: var(--gold); }
+
+  .nav-back {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 0.4rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--white); }
+
+  /* HERO */
+  .hero {
+    padding: 5rem 1.5rem 3rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(37,99,235,0.06) 0%, transparent 100%);
+  }
+
+  .hero-label {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.25);
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 1rem;
+    line-height: 1.15;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* CONTENT */
+  .content {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .last-updated {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.9rem;
+    margin-bottom: 3rem;
+  }
+
+  .section {
+    margin-bottom: 3rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .section-number {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 0.5rem;
+  }
+
+  .section h2 {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    color: var(--white);
+  }
+
+  .section p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+  }
+
+  .section p:last-child { margin-bottom: 0; }
+
+  .section ul {
+    list-style: none;
+    margin: 1rem 0;
+  }
+
+  .section ul li {
+    color: var(--muted);
+    font-size: 0.95rem;
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    position: relative;
+  }
+
+  .section ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--blue);
+    font-size: 0.8rem;
+  }
+
+  .highlight-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .highlight-box p {
+    color: var(--white) !important;
+    font-size: 0.9rem !important;
+    margin: 0 !important;
+  }
+
+  /* CONTACT CARD */
+  .contact-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .contact-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-card p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .contact-card a {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .contact-card a:hover { text-decoration: underline; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--deep);
+  }
+
+  footer p { color: var(--muted); font-size: 0.8rem; }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">B<span>&</span>H Rides</a>
+  <a href="/" class="nav-back">← Back to Home</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-label">Legal</div>
+  <h1>Privacy Policy</h1>
+  <p>How we collect, use, and protect your information when you use B&H Rides.</p>
+</div>
+
+<div class="content">
+  <span class="last-updated">Last updated: May 27, 2026</span>
+
+  <div class="section">
+    <div class="section-number">Section 01</div>
+    <h2>Who We Are</h2>
+    <p>B&H Rides is a private transportation service owned and operated by Brian and Hilary Hinchcliffe, providing airport and personal ride services in the Dallas–Fort Worth area. Our website is bhridestx.com. We can be reached at:</p>
+    <ul>
+      <li>Brian: <a href="tel:9728248330" style="color:var(--blue);">972-824-8330</a></li>
+      <li>Hilary: <a href="tel:9728221457" style="color:var(--blue);">972-822-1457</a></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 02</div>
+    <h2>Information We Collect</h2>
+    <p>When you submit a ride request through our website, we collect the following information:</p>
+    <ul>
+      <li>Your full name</li>
+      <li>Phone number</li>
+      <li>Pickup location and destination</li>
+      <li>Requested ride date and time</li>
+      <li>Any additional notes you provide (luggage, accessibility needs, etc.)</li>
+      <li>Your SMS consent status</li>
+    </ul>
+    <p>We do not collect payment information through this website. Payments are handled separately and directly between you and B&H Rides.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 03</div>
+    <h2>How We Use Your Information</h2>
+    <p>The information you provide is used solely to:</p>
+    <ul>
+      <li>Process and confirm your ride request</li>
+      <li>Send you SMS notifications about your booking status</li>
+      <li>Contact you regarding your scheduled ride</li>
+      <li>Improve our service</li>
+    </ul>
+    <div class="highlight-box">
+      <p>We will never sell, rent, or share your personal information with third parties for marketing purposes.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 04</div>
+    <h2>SMS Communications</h2>
+    <p>By submitting a ride request and checking the consent box, you agree to receive SMS text messages from B&H Rides. These messages may include:</p>
+    <ul>
+      <li>Ride confirmation or denial notifications</li>
+      <li>Booking status updates</li>
+      <li>Ride reminders</li>
+    </ul>
+    <p>SMS messages are sent by B&H Rides. Message and data rates may apply. Message frequency varies based on your ride activity. Reply <strong>STOP</strong> at any time to opt out of SMS communications. Reply <strong>HELP</strong> for assistance.</p>
+    <div class="highlight-box">
+      <p>Mobile information, including your phone number and SMS consent, will not be shared with third parties or affiliates for marketing or promotional purposes. No mobile information will be sold or rented to outside parties.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 05</div>
+    <h2>Data Storage & Security</h2>
+    <p>Your ride request information is stored securely using Supabase, a cloud database service. We take reasonable measures to protect your information from unauthorized access, disclosure, or loss.</p>
+    <p>We retain your information only as long as necessary to provide our services and comply with applicable laws.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 06</div>
+    <h2>Your Rights</h2>
+    <p>You have the right to:</p>
+    <ul>
+      <li>Request access to the personal information we hold about you</li>
+      <li>Request correction of inaccurate information</li>
+      <li>Request deletion of your information</li>
+      <li>Opt out of SMS communications at any time by replying STOP</li>
+    </ul>
+    <p>To exercise any of these rights, contact us directly by phone or email.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-number">Section 07</div>
+    <h2>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated date. Continued use of our services after changes constitutes acceptance of the updated policy.</p>
+  </div>
+
+  <div class="contact-card">
+    <h3>Questions About This Policy?</h3>
+    <p>Contact Brian or Hilary directly and we'll be happy to help.</p>
+    <a href="tel:9728248330">972-824-8330</a> &nbsp;·&nbsp; <a href="tel:9728221457">972-822-1457</a>
+  </div>
+
+</div>
+
+<footer>
+  <p>&copy; 2026 B&H Rides · bhridestx.com · <a href="/privacy-policy">Privacy Policy</a> · <a href="/terms">Terms & Conditions</a></p>
+</footer>
+
+</body>
+</html>
