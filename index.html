@@ -693,41 +693,50 @@ document.addEventListener('DOMContentLoaded', () => {
     data.submittedAt   = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' });
 
     // Human-readable SMS body (used by your serverless function)
-    const smsLines = [
-      `🚗 New B&H Ride Request`,
-      `Trip Type: ${data.tripType}`,
-      `Name: ${data.name}`,
-      `Address: ${data.unit}`,
-      `Phone: ${data.phone}`,
-      `--- Outbound ---`,
-      `Pickup: ${data.pickup === 'other' ? data.otherPickup : data.pickup}`,
-      `Airport: ${data.destination}`,
-      `Date: ${data.date} at ${data.time}`,
-      `Airline: ${data.airline} — Flight ${data.flightNumber}`,
-      `Departure: ${data.departureTime}`,
-      `Est. Miles: ${getEstMiles(data.destination)}`,
-    ];
+    let smsLines;
+
     if (isRoundTrip) {
-      smsLines.push(
-        `--- Return ---`,
-        `Airport: ${data.pickup2}`,
-        `Drop-off: ${data.destination2 === 'other' ? data.otherDestination2 : data.destination2}`,
-        `Date: ${data.date2} at ${data.time2}`,
-        `Airline: ${data.airline2} — Flight ${data.flightNumber2}`,
-        `Arrival: ${data.arrivalTime2}`,
-        `Est. Miles: ${getEstMiles(data.pickup2)}`
-      );
+      // Round Trip — trimmed to avoid the long-message carrier issue seen on some
+      // numbers (11+ segments). Full detail (flight #s, times, mileage, luggage,
+      // driver, notes) still goes out via email + is visible on the dashboard —
+      // nothing is lost, it's just not in the text itself. Both legs' routes are
+      // kept here since a round trip has two different pickup/drop-off pairs.
+      const outboundPickup      = data.pickup === 'other' ? data.otherPickup : data.pickup;
+      const returnDropoff       = data.destination2 === 'other' ? data.otherDestination2 : data.destination2;
+
+      smsLines = [
+        `New Round Trip Request`,
+        `${data.name} - ${data.phone}`,
+        `Depart ${data.date}: ${outboundPickup} to ${data.destination}`,
+        `Return ${data.date2}: ${data.pickup2} to ${returnDropoff}`,
+        `Rate: ${data.flatRate}`,
+        `Dashboard: https://bhridestx.com/dashboard`
+      ];
+    } else {
+      // One-way — unchanged, full detail (never had a delivery issue)
+      smsLines = [
+        `🚗 New B&H Ride Request`,
+        `Trip Type: ${data.tripType}`,
+        `Name: ${data.name}`,
+        `Address: ${data.unit}`,
+        `Phone: ${data.phone}`,
+        `--- Outbound ---`,
+        `Pickup: ${data.pickup === 'other' ? data.otherPickup : data.pickup}`,
+        `Airport: ${data.destination}`,
+        `Date: ${data.date} at ${data.time}`,
+        `Airline: ${data.airline} — Flight ${data.flightNumber}`,
+        `Departure: ${data.departureTime}`,
+        `Est. Miles: ${getEstMiles(data.destination)}`,
+        `Passengers: ${data.passengers}`,
+        `Luggage: ${data.luggage} piece(s)`,
+        `Driver: ${data.driver}`,
+        `Payment: ${data.paymentMethod}`,
+        `Rate: ${data.flatRate}`,
+        `Notes: ${data.notes || 'None'}`,
+        `Submitted: ${data.submittedAt}`,
+        `Dashboard: https://bhridestx.com/dashboard`
+      ];
     }
-    smsLines.push(
-      `Passengers: ${data.passengers}`,
-      `Luggage: ${data.luggage} piece(s)`,
-      `Driver: ${data.driver}`,
-      `Payment: ${data.paymentMethod}`,
-      `Rate: ${data.flatRate}`,
-      `Notes: ${data.notes || 'None'}`,
-      `Submitted: ${data.submittedAt}`,
-      `Dashboard: https://bhridestx.com/dashboard`
-    );
     data._smsBody = smsLines.join('\n');
 
     try {
