@@ -595,6 +595,12 @@ function buildRideCard(r, type) {
   const pickup  = r.pickup === 'other' ? (r.other_pickup || 'See notes') : r.pickup;
   const notes   = r.notes ? `<div class="ride-notes">📝 ${r.notes}</div>` : '';
 
+  // ── Return leg (Round Trip bookings only) ──
+  const isRoundTrip = r.trip_type === 'Round Trip';
+  const date2   = isRoundTrip && r.ride_date2 ? new Date(r.ride_date2 + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null;
+  const time2   = isRoundTrip && r.ride_time2 ? formatTime(r.ride_time2) : null;
+  const dropoff2 = r.destination2 === 'other' ? (r.other_destination2 || 'See notes') : r.destination2;
+
   let actions = '';
   if (type === 'pending') {
     actions = `
@@ -632,6 +638,20 @@ function buildRideCard(r, type) {
       ${r.luggage ? `<span class="chip">🧳 <strong>${r.luggage} piece(s)</strong></span>` : ''}
       ${r.est_miles ? `<span class="chip">🗺 <strong>${r.est_miles}</strong></span>` : ''}
     </div>
+    ${isRoundTrip ? `
+    <div class="return-leg" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed rgba(255,255,255,0.15);">
+      <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:rgba(255,255,255,0.45); margin-bottom:0.45rem;">↩ Return Leg</div>
+      <div class="ride-chips">
+        ${date2 ? `<span class="chip">📅 <strong>${date2}</strong></span>` : ''}
+        ${time2 ? `<span class="chip">🕐 <strong>${time2}</strong></span>` : ''}
+        ${r.destination2 ? `<span class="chip">✈ <strong>${r.destination2}</strong></span>` : ''}
+        ${r.pickup2 ? `<span class="chip">📍 ${r.pickup2}</span>` : ''}
+        ${dropoff2 ? `<span class="chip">🏁 ${dropoff2}</span>` : ''}
+        ${r.airline2 ? `<span class="chip">🛫 <strong>${r.airline2}</strong> — Flight ${r.flight_number2 || 'N/A'}</span>` : ''}
+        ${r.arrival_time2 ? `<span class="chip">🕐 Arrives ${r.arrival_time2}</span>` : ''}
+        ${r.est_miles2 ? `<span class="chip">🗺 <strong>${r.est_miles2}</strong></span>` : ''}
+      </div>
+    </div>` : ''}
     ${notes}
     <div class="ride-actions">${actions}</div>`;
 
