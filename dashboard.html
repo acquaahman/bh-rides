@@ -644,9 +644,8 @@ function buildRideCard(r, type) {
       <div class="ride-chips">
         ${date2 ? `<span class="chip">📅 <strong>${date2}</strong></span>` : ''}
         ${time2 ? `<span class="chip">🕐 <strong>${time2}</strong></span>` : ''}
-        ${r.destination2 ? `<span class="chip">✈ <strong>${r.destination2}</strong></span>` : ''}
-        ${r.pickup2 ? `<span class="chip">📍 ${r.pickup2}</span>` : ''}
-        ${dropoff2 ? `<span class="chip">🏁 ${dropoff2}</span>` : ''}
+        ${r.pickup2 ? `<span class="chip">✈ <strong>${r.pickup2}</strong></span>` : ''}
+        ${dropoff2 ? `<span class="chip">📍 ${dropoff2}</span>` : ''}
         ${r.airline2 ? `<span class="chip">🛫 <strong>${r.airline2}</strong> — Flight ${r.flight_number2 || 'N/A'}</span>` : ''}
         ${r.arrival_time2 ? `<span class="chip">🕐 Arrives ${r.arrival_time2}</span>` : ''}
         ${r.est_miles2 ? `<span class="chip">🗺 <strong>${r.est_miles2}</strong></span>` : ''}
