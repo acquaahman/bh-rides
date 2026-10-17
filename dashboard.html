@@ -446,7 +446,7 @@ async function notifyRider(ride, action) {
     }
     const isPickup = ride.trip_type && ride.trip_type.startsWith('Pick-up');
     const routeLine = isPickup ? `from ${ride.destination}` : `to ${ride.destination}`;
-    msg = `Hi ${ride.name.split(' ')[0]}, your B&H Rides request for ${date} at ${time} ${routeLine} has been confirmed! See you then.${paymentLine} Questions? Call 972-824-8330.`;
+    msg = `Hi ${ride.name.split(' ')[0]}, your B&H Rides request for ${date} at ${time} ${routeLine} has been confirmed! See you then. Your ride: gray Mazda CX-50, TX plate XBC-5472.${paymentLine} Questions? Call 972-824-8330.`;
   } else {
     msg = `Hi ${ride.name.split(' ')[0]}, unfortunately your B&H Rides request for ${date} at ${time} could not be accommodated. Please call 972-824-8330 to discuss alternatives.`;
   }
