@@ -436,19 +436,23 @@ async function notifyRider(ride, action) {
   let msg;
   if (action === 'confirmed') {
     // Build payment instruction based on method selected at booking
+    // Round trips are charged at 2x the one-way flat rate ($120 = $60 each way)
+    const isRoundTrip = ride.trip_type === 'Round Trip';
+    const rateText = isRoundTrip ? '$120 round-trip rate ($60 each way)' : '$60 flat rate';
+    const cashText = isRoundTrip ? '$120 cash (round trip)' : '$60 cash';
     let paymentLine = '';
     if (ride.payment_method === 'Venmo') {
-      paymentLine = ' To pay your $60 flat rate via Venmo: https://venmo.com/u/brian-hinchcliffe';
+      paymentLine = ` To pay your ${rateText} via Venmo: https://venmo.com/u/brian-hinchcliffe`;
     } else if (ride.payment_method === 'Zelle') {
-      paymentLine = ' To pay your $60 flat rate via Zelle, send to: brian.hinchcliffe@gmail.com';
+      paymentLine = ` To pay your ${rateText} via Zelle, send to: brian.hinchcliffe@gmail.com`;
     } else if (ride.payment_method === 'Cash') {
-      paymentLine = ' Please have $60 cash ready at time of pickup.';
+      paymentLine = ` Please have ${cashText} ready at time of pickup.`;
     }
     const isPickup = ride.trip_type && ride.trip_type.startsWith('Pick-up');
     const routeLine = isPickup ? `from ${ride.destination}` : `to ${ride.destination}`;
     // Round Trip: spell out the return leg so the rider sees both trips confirmed
     let returnLine = '';
-    if (ride.trip_type === 'Round Trip' && ride.ride_date2) {
+    if (isRoundTrip && ride.ride_date2) {
       const date2 = new Date(ride.ride_date2 + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const time2 = ride.ride_time2 ? ` at ${formatTime(ride.ride_time2)}` : '';
       const from2 = ride.pickup2 ? ` from ${ride.pickup2}` : '';
