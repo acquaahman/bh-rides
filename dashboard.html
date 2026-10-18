@@ -446,7 +446,17 @@ async function notifyRider(ride, action) {
     }
     const isPickup = ride.trip_type && ride.trip_type.startsWith('Pick-up');
     const routeLine = isPickup ? `from ${ride.destination}` : `to ${ride.destination}`;
-    msg = `Hi ${ride.name.split(' ')[0]}, your B&H Rides request for ${date} at ${time} ${routeLine} has been confirmed! See you then. Your ride: gray Mazda CX-50, TX plate XBC-5472.${paymentLine} Questions? Call 972-824-8330.`;
+    // Round Trip: spell out the return leg so the rider sees both trips confirmed
+    let returnLine = '';
+    if (ride.trip_type === 'Round Trip' && ride.ride_date2) {
+      const date2 = new Date(ride.ride_date2 + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const time2 = ride.ride_time2 ? ` at ${formatTime(ride.ride_time2)}` : '';
+      const from2 = ride.pickup2 ? ` from ${ride.pickup2}` : '';
+      const dropoff2 = ride.destination2 === 'other' ? (ride.other_destination2 || '') : (ride.destination2 || '');
+      const to2 = dropoff2 ? ` to ${dropoff2}` : '';
+      returnLine = ` Your return trip is also confirmed: ${date2}${time2}${from2}${to2}.`;
+    }
+    msg = `Hi ${ride.name.split(' ')[0]}, your B&H Rides request for ${date} at ${time} ${routeLine} has been confirmed!${returnLine} See you then. Your ride: gray Mazda CX-50, TX plate XBC-5472.${paymentLine} Questions? Call 972-824-8330.`;
   } else {
     msg = `Hi ${ride.name.split(' ')[0]}, unfortunately your B&H Rides request for ${date} at ${time} could not be accommodated. Please call 972-824-8330 to discuss alternatives.`;
   }
