@@ -641,25 +641,50 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Phone guard — we need a number we can actually reach
+    if (document.getElementById('phone').value.replace(/\D/g, '').length < 10) {
+      alert('Please enter a complete 10-digit phone number so we can reach you.');
+      document.getElementById('phone').focus();
+      return;
+    }
+
+    // Review step — show the rider what they entered before sending
+    if (!window.__reviewed) {
+      const f = new FormData(this);
+      const rows = [['Name', f.get('name')], ['Phone', f.get('phone')], ['Trip', f.get('tripType')],
+        ['Date', f.get('date')], ['Time', f.get('time')], ['Pickup / drop-off', f.get('pickup') === 'other' ? f.get('otherPickup') : f.get('pickup')],
+        ['Airport', f.get('destination')], ['Flight', [f.get('airline'), f.get('flightNumber')].filter(Boolean).join(' ') || 'not entered'],
+        ['Passengers', f.get('passengers')], ['Luggage', f.get('luggage')]];
+      if (isRoundTrip) rows.push(['Return', [f.get('date2'), f.get('time2')].filter(Boolean).join(' ') + ' from ' + (f.get('pickup2') || '')],
+        ['Return flight', [f.get('airline2'), f.get('flightNumber2')].filter(Boolean).join(' ') || 'not entered']);
+      const list = document.getElementById('reviewList');
+      list.textContent = '';
+      rows.forEach(([k, v]) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;border-bottom:1px solid #252a38;font-size:.9rem;';
+        const a = document.createElement('span'); a.style.color = '#7a8099'; a.textContent = k;
+        const b = document.createElement('strong'); b.style.textAlign = 'right'; b.textContent = v || '—';
+        row.append(a, b); list.appendChild(row);
+      });
+      document.getElementById('reviewOverlay').style.display = 'flex';
+      return;
+    }
+    window.__reviewed = false;
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>&nbsp;Checking availability…';
 
     // ── Double-booking check with 45-minute buffer ──
     async function checkConflict(dateVal, timeVal, label) {
-      const checkRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/ride_requests?ride_date=eq.${dateVal}&status=in.(pending,confirmed)&select=ride_time`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      );
-      const existing = await checkRes.json();
-      if (!existing || !existing.length) return null;
-
-      const [reqH, reqM] = timeVal.split(':').map(Number);
-      const reqMins = reqH * 60 + reqM;
-      const conflict = existing.some(row => {
-        const [bH, bM] = row.ride_time.split(':').map(Number);
-        return Math.abs(reqMins - (bH * 60 + bM)) < 45;
+      // Answered by a server function — it only returns yes/no, never other riders' details
+      const checkRes = await fetch('/.netlify/functions/check-availability', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ date: dateVal, time: timeVal })
       });
+      if (!checkRes.ok) throw new Error('Availability check failed');
+      const { conflict } = await checkRes.json();
       return conflict ? label : null;
     }
 
@@ -777,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
           luggage:        data.luggage || null,
           est_miles:      getEstMiles(data.destination),
           notes:          data.notes || null,
+          sms_consent:    document.getElementById('smsConsent').checked,
           submitted_at:   data.submittedAt,
           // Leg 2 — Round Trip return leg only (requires these columns to exist in Supabase; see note below)
           pickup2:          isRoundTrip ? data.pickup2 : null,
@@ -807,10 +833,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       console.error(err);
-      alert('Something went wrong. Please call 972-824-8000 to book directly.');
+      alert('Something went wrong. Please call 972-824-8330 to book directly.');
       btn.disabled = false;
       btn.innerHTML = 'Submit Ride Request';
     }
+  });
+
+  // ── Review overlay buttons ──
+  document.getElementById('reviewEdit').addEventListener('click', () => {
+    document.getElementById('reviewOverlay').style.display = 'none';
+  });
+  document.getElementById('reviewGo').addEventListener('click', () => {
+    document.getElementById('reviewOverlay').style.display = 'none';
+    window.__reviewed = true;
+    document.getElementById('rideForm').requestSubmit();
   });
 
   // ── Mileage estimate ──
@@ -824,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Payment deep link ──
+  window.showPaymentLink = showPaymentLink;
   function showPaymentLink(method) {
     const wrap = document.getElementById('paymentLinkWrap');
     const link = document.getElementById('paymentLink');
@@ -859,5 +896,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
+<div id="reviewOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#1a1e2b;border:1px solid #252a38;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow:auto;padding:1.4rem;color:#f0f2f8;">
+    <h3 style="margin-bottom:.3rem;">Please double-check your details</h3>
+    <p style="color:#7a8099;font-size:.85rem;margin-bottom:.8rem;">Missing a flight number or return info? Tap “Go back” to add it — it helps us plan your pickup.</p>
+    <div id="reviewList"></div>
+    <div style="display:flex;gap:.6rem;margin-top:1.1rem;">
+      <button type="button" id="reviewEdit" style="flex:1;padding:.8rem;border-radius:10px;border:1px solid #252a38;background:transparent;color:#f0f2f8;font-weight:600;cursor:pointer;">Go back</button>
+      <button type="button" id="reviewGo" style="flex:1;padding:.8rem;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-weight:600;cursor:pointer;">Looks good — send</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

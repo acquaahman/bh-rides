@@ -152,6 +152,17 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { border-color: var(--green); }
     .toast.error   { border-color: var(--red); }
+    .modal-wrap { display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9998; align-items:flex-start; justify-content:center; padding:1rem; overflow:auto; }
+    .modal { background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:640px; width:100%; padding:1.25rem; margin:auto; }
+    .modal h3 { font-family:var(--font-display); font-weight:400; margin-bottom:.25rem; }
+    .mnote { color:var(--muted); font-size:.82rem; margin-bottom:.8rem; }
+    .mgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.6rem; margin-bottom:.6rem; }
+    .mf { display:flex; flex-direction:column; gap:.2rem; font-size:.74rem; color:var(--muted); }
+    .mf input,.mf select,.mf textarea,.mchecks input[type=text],#i_other { background:var(--deep); border:1px solid var(--border); border-radius:8px; color:var(--white); font-family:var(--font-body); font-size:.92rem; padding:.5rem .65rem; width:100%; }
+    .msub { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:.8rem 0 .4rem; }
+    .mchecks { display:flex; flex-direction:column; gap:.4rem; font-size:.9rem; }
+    .mpreview { background:var(--deep); border:1px solid var(--border); border-radius:8px; padding:.7rem; font-size:.85rem; }
+    .mbtns { display:flex; gap:.6rem; justify-content:flex-end; flex-wrap:wrap; margin-top:1rem; }
   </style>
 </head>
 <body>
@@ -295,39 +306,48 @@
 </div>
 
 <!-- TOAST -->
+<div class="modal-wrap" id="modalWrap"><div class="modal" id="modalBody"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
 // ============================================================
-//  CONFIG — replace with your real Supabase credentials
-//  Add these to Netlify environment variables too:
-//    SUPABASE_URL   → your project URL
-//    SUPABASE_ANON_KEY → your anon/public key
+//  CONFIG
+//  This page holds no passwords or database keys. Everything goes
+//  through Netlify Functions, which check the dashboard access code
+//  on the server. Settings live in Netlify environment variables:
+//    DASHBOARD_CODE, SUPABASE_SERVICE_KEY (see the deploy steps)
 // ============================================================
-const SUPABASE_URL      = 'https://ohiutjikhkxiwmgqvncb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_-Olfy7RsSU1JviPcFvjx0g_TA3Mhu8k';
-const DASHBOARD_PASSWORD = 'bhrides2025';
 
 // Twilio notify endpoint
 const NOTIFY_SMS_URL = '/.netlify/functions/notify-sms';
+const DASH_API_URL   = '/.netlify/functions/dash-api';
+
+// The access code is checked on the server (never stored in this page).
+// It lives only in this browser tab's sessionStorage after a successful login.
+function getDashCode() {
+  try { return sessionStorage.getItem('bh_dash_code') || ''; } catch (e) { return ''; }
+}
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'x-dash-code': getDashCode() };
+}
+function forceRelogin() {
+  try { sessionStorage.removeItem('bh_dash_code'); } catch (e) {}
+  location.reload();
+}
 
 // ============================================================
-//  SUPABASE HELPERS
+//  DATA HELPERS  (all requests go through the dash-api function)
 // ============================================================
 async function sbFetch(path, options = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(options.headers || {})
-    }
+  const res = await fetch(DASH_API_URL, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ path, method: options.method || 'GET', body: options.body || null })
   });
+  if (res.status === 401) { forceRelogin(); throw new Error('Session expired'); }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Supabase error');
+    throw new Error(err.message || err.error || 'Request failed');
   }
   return res.status === 204 ? null : res.json();
 }
@@ -356,14 +376,7 @@ async function markComplete(id) {
 //  DELETE — for confirmed, declined, or completed bookings
 // ============================================================
 async function deleteBooking(id) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/ride_requests?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-    }
-  });
-  if (!res.ok) throw new Error('Delete failed');
+  await sbFetch(`ride_requests?id=eq.${id}`, { method: 'DELETE' });
 }
 
 async function handleDelete(id, cardSelector, emptyStateHtml, listId) {
@@ -419,13 +432,17 @@ async function handleDeleteEarning(id) {
 // ============================================================
 async function sendSMS(message, to) {
   try {
-    await fetch(NOTIFY_SMS_URL, {
+    const res = await fetch(NOTIFY_SMS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ message, to })
     });
+    if (!res.ok) throw new Error('SMS failed: ' + res.status);
+    return true;
   } catch (e) {
     console.error('SMS error:', e);
+    showToast('⚠️ The text to the rider did not send. Please text them directly.', 'error');
+    return false;
   }
 }
 
@@ -448,8 +465,8 @@ async function notifyRider(ride, action) {
     } else if (ride.payment_method === 'Cash') {
       paymentLine = ` Please have ${cashText} ready at time of pickup.`;
     }
-    const isPickup = ride.trip_type && ride.trip_type.startsWith('Pick-up');
-    const routeLine = isPickup ? `from ${ride.destination}` : `to ${ride.destination}`;
+    const airportName = rideLegs(ride).airport;
+    const routeLine = isPickupTrip(ride) ? `from ${airportName}` : `to ${airportName}`;
     // Round Trip: spell out the return leg so the rider sees both trips confirmed
     let returnLine = '';
     if (isRoundTrip && ride.ride_date2) {
@@ -470,11 +487,22 @@ async function notifyRider(ride, action) {
 // ============================================================
 //  PASSWORD
 // ============================================================
-function checkPw() {
+async function checkPw() {
   const val = document.getElementById('pwInput').value.trim();
   const err = document.getElementById('pwError');
-  if (val === DASHBOARD_PASSWORD) {
-    sessionStorage.setItem('bh_dash', 'granted');
+  err.style.display = 'none';
+  let ok = false;
+  try {
+    const res = await fetch(DASH_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-dash-code': val },
+      body: JSON.stringify({ action: 'login' })
+    });
+    ok = res.ok;
+  } catch (e) { ok = false; }
+
+  if (ok) {
+    try { sessionStorage.setItem('bh_dash_code', val); } catch (e) {}
     const screen = document.getElementById('pwScreen');
     screen.style.opacity = '0';
     screen.style.pointerEvents = 'none';
@@ -495,11 +523,11 @@ document.getElementById('pwInput').addEventListener('keydown', e => {
 });
 
 function logout() {
-  sessionStorage.removeItem('bh_dash');
+  try { sessionStorage.removeItem('bh_dash_code'); } catch (e) {}
   location.reload();
 }
 
-if (sessionStorage.getItem('bh_dash') === 'granted') {
+if (getDashCode()) {
   document.getElementById('pwScreen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
   initDashboard();
@@ -606,67 +634,79 @@ function buildRideCard(r, type) {
 
   const date    = new Date(r.ride_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const time    = formatTime(r.ride_time);
-  const pickup  = r.pickup === 'other' ? (r.other_pickup || 'See notes') : r.pickup;
-  const notes   = r.notes ? `<div class="ride-notes">📝 ${r.notes}</div>` : '';
+  const legs = rideLegs(r);
+  const pickup  = legs.home || 'See notes';
+  const missing = missingInfo(r);
+  const notes   = r.notes ? `<div class="ride-notes">📝 ${esc(r.notes)}</div>` : '';
 
   // ── Return leg (Round Trip bookings only) ──
   const isRoundTrip = r.trip_type === 'Round Trip';
   const date2   = isRoundTrip && r.ride_date2 ? new Date(r.ride_date2 + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null;
   const time2   = isRoundTrip && r.ride_time2 ? formatTime(r.ride_time2) : null;
   const dropoff2 = r.destination2 === 'other' ? (r.other_destination2 || 'See notes') : r.destination2;
+  const editBtns = `<button class="btn btn-ghost" onclick="openEdit('${esc(r.id)}')">✏️ Edit</button><button class="btn btn-ghost" onclick="openInfo('${esc(r.id)}')">❓ Request info</button>`;
 
   let actions = '';
   if (type === 'pending') {
     actions = `
       <button class="btn btn-accept"  onclick="handleAction('${r.id}', 'confirmed')">✓ Accept</button>
-      <button class="btn btn-decline" onclick="handleAction('${r.id}', 'declined')">✗ Decline</button>`;
+      <button class="btn btn-decline" onclick="handleAction('${r.id}', 'declined')">✗ Decline</button>${editBtns}`;
   } else if (type === 'upcoming') {
     actions = `
-      <button class="btn btn-complete" onclick="handleComplete('${r.id}')">Mark as Completed</button>
+      <button class="btn btn-complete" onclick="handleComplete('${r.id}')">Mark as Completed</button>${editBtns}
       <button class="btn btn-delete" onclick="handleDelete('${r.id}', '#ride-${r.id}', '<div class=&quot;empty&quot;><div class=&quot;empty-icon&quot;>📅</div><p>No upcoming rides confirmed yet.</p></div>', 'upcomingList')">🗑️ Delete</button>`;
   } else if (type === 'declined') {
     actions = `
       <button class="btn btn-delete" onclick="handleDelete('${r.id}', '#ride-${r.id}', '<div class=&quot;empty&quot;><div class=&quot;empty-icon&quot;>✅</div><p>No declined bookings.</p></div>', 'declinedList')">🗑️ Delete</button>`;
   }
 
+  const flags = [
+    r.needs_info ? `<span class="chip" style="background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);">⚠ <strong>Needs info</strong>${r.needs_info_note ? ' — ' + esc(r.needs_info_note) : ''}</span>` : '',
+    (!r.needs_info && missing.length) ? `<span class="chip" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);">⚠ Missing: ${esc(missing.join(', '))}</span>` : '',
+    r.sms_consent === false ? `<span class="chip">🔕 No text consent</span>` : '',
+    r.last_edited_at ? `<span class="chip">✏️ Edited ${esc(new Date(r.last_edited_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>` : ''
+  ].join('');
+  const received = r.needs_info ? `<button class="btn btn-ghost" onclick="infoReceived('${esc(r.id)}')">✓ Info received</button>` : '';
+
   div.innerHTML = `
     <div class="ride-top">
       <div>
-        <div class="ride-name">${r.name}</div>
-        <div class="ride-addr">${r.address}</div>
+        <div class="ride-name">${esc(r.name)}</div>
+        <div class="ride-addr">${esc(r.address)}</div>
       </div>
-      <span class="status-pill s-${r.status}">${capitalize(r.status)}</span>
+      <span class="status-pill s-${esc(r.status)}">${esc(capitalize(r.status))}</span>
     </div>
     <div class="ride-chips">
-      ${r.trip_type ? `<span class="chip" style="background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);">${r.trip_type.startsWith('Pick-up') ? '🛬' : '🛫'} <strong>${r.trip_type}</strong></span>` : ''}
-      <span class="chip">📅 <strong>${date}</strong></span>
-      <span class="chip">🕐 <strong>${time}</strong></span>
-      <span class="chip">✈ <strong>${r.destination}</strong></span>
-      <span class="chip">👥 <strong>${r.passengers} pax</strong></span>
-      <span class="chip">📍 ${pickup}</span>
-      <span class="chip">💳 ${r.payment_method}</span>
-      <span class="chip">📞 <a href="tel:${r.phone.replace(/\D/g,'')}" style="color:var(--blue);text-decoration:none;">${r.phone}</a></span>
-      ${r.email ? `<span class="chip">✉ ${r.email}</span>` : ''}
-      ${r.airline ? `<span class="chip">🛫 <strong>${r.airline}</strong> — Flight ${r.flight_number || 'N/A'}</span>` : ''}
-      ${r.departure_time ? `<span class="chip">🕐 Departs ${r.departure_time}</span>` : ''}
-      ${r.luggage ? `<span class="chip">🧳 <strong>${r.luggage} piece(s)</strong></span>` : ''}
-      ${r.est_miles ? `<span class="chip">🗺 <strong>${r.est_miles}</strong></span>` : ''}
+      ${r.trip_type ? `<span class="chip" style="background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);">${isPickupTrip(r) ? '🛬' : '🛫'} <strong>${esc(r.trip_type)}</strong></span>` : ''}
+      <span class="chip">📅 <strong>${esc(date)}</strong></span>
+      <span class="chip">🕐 <strong>${esc(time)}</strong></span>
+      <span class="chip">✈ <strong>${esc(legs.airport)}</strong></span>
+      <span class="chip">👥 <strong>${esc(r.passengers)} pax</strong></span>
+      <span class="chip">📍 ${esc(pickup)}</span>
+      <span class="chip">💳 ${esc(r.payment_method)}</span>
+      <span class="chip">📞 <a href="tel:${esc((r.phone || '').replace(/\D/g,''))}" style="color:var(--blue);text-decoration:none;">${esc(r.phone)}</a></span>
+      ${r.email ? `<span class="chip">✉ ${esc(r.email)}</span>` : ''}
+      ${r.airline ? `<span class="chip">🛫 <strong>${esc(r.airline)}</strong> — Flight ${esc(r.flight_number || 'N/A')}</span>` : ''}
+      ${r.departure_time ? `<span class="chip">🕐 Flight time ${esc(r.departure_time)}</span>` : ''}
+      ${r.luggage ? `<span class="chip">🧳 <strong>${esc(r.luggage)} piece(s)</strong></span>` : ''}
+      ${r.est_miles ? `<span class="chip">🗺 <strong>${esc(r.est_miles)}</strong></span>` : ''}
+      ${flags}
     </div>
     ${isRoundTrip ? `
     <div class="return-leg" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px dashed rgba(255,255,255,0.15);">
       <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:rgba(255,255,255,0.45); margin-bottom:0.45rem;">↩ Return Leg</div>
       <div class="ride-chips">
-        ${date2 ? `<span class="chip">📅 <strong>${date2}</strong></span>` : ''}
-        ${time2 ? `<span class="chip">🕐 <strong>${time2}</strong></span>` : ''}
-        ${r.pickup2 ? `<span class="chip">✈ <strong>${r.pickup2}</strong></span>` : ''}
-        ${dropoff2 ? `<span class="chip">📍 ${dropoff2}</span>` : ''}
-        ${r.airline2 ? `<span class="chip">🛫 <strong>${r.airline2}</strong> — Flight ${r.flight_number2 || 'N/A'}</span>` : ''}
-        ${r.arrival_time2 ? `<span class="chip">🕐 Arrives ${r.arrival_time2}</span>` : ''}
-        ${r.est_miles2 ? `<span class="chip">🗺 <strong>${r.est_miles2}</strong></span>` : ''}
+        ${date2 ? `<span class="chip">📅 <strong>${esc(date2)}</strong></span>` : ''}
+        ${time2 ? `<span class="chip">🕐 <strong>${esc(time2)}</strong></span>` : ''}
+        ${r.pickup2 ? `<span class="chip">✈ <strong>${esc(r.pickup2)}</strong></span>` : ''}
+        ${dropoff2 ? `<span class="chip">📍 ${esc(dropoff2)}</span>` : ''}
+        ${r.airline2 ? `<span class="chip">🛫 <strong>${esc(r.airline2)}</strong> — Flight ${esc(r.flight_number2 || 'N/A')}</span>` : ''}
+        ${r.arrival_time2 ? `<span class="chip">🕐 Arrives ${esc(r.arrival_time2)}</span>` : ''}
+        ${r.est_miles2 ? `<span class="chip">🗺 <strong>${esc(r.est_miles2)}</strong></span>` : ''}
       </div>
     </div>` : ''}
     ${notes}
-    <div class="ride-actions">${actions}</div>`;
+    <div class="ride-actions">${actions}${received}</div>`;
 
   return div;
 }
@@ -701,15 +741,6 @@ async function handleAction(id, status) {
   try {
     const [updated] = await updateStatus(id, status);
     await notifyRider(updated, status);
-
-    // ── Sync to Google Calendar (confirmed rides only, non-blocking) ──
-    if (status === 'confirmed') {
-      fetch('/.netlify/functions/create-calendar-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      }).catch(err => console.error('Calendar sync error:', err));
-    }
 
     card.remove();
     showToast(status === 'confirmed' ? '✅ Ride confirmed — rider notified!' : '❌ Ride declined — rider notified.', status === 'confirmed' ? 'success' : 'error');
@@ -851,14 +882,14 @@ async function loadEarnings() {
             ${rides.map(r => {
               const d = new Date(r.ride_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               return `<tr id="earn-row-${r.id}">
-                <td><div class="earn-name">${r.name}</div><div class="earn-detail">${r.address}</div></td>
-                <td>${r.trip_type ? (r.trip_type.startsWith('Pick-up') ? 'Pick-up' : 'Drop-off') : '—'}</td>
-                <td>${r.destination}</td>
+                <td><div class="earn-name">${esc(r.name)}</div><div class="earn-detail">${esc(r.address)}</div></td>
+                <td>${r.trip_type ? (isPickupTrip(r) ? 'Pick-up' : 'Drop-off') : '—'}</td>
+                <td>${esc(rideLegs(r).airport)}</td>
                 <td>${d} · ${formatTime(r.ride_time)}</td>
-                <td>${r.airline ? `${r.airline} ${r.flight_number || ''}` : '—'}</td>
-                <td>${r.luggage ? `${r.luggage} pc` : '—'}</td>
-                <td>${r.est_miles || '—'}</td>
-                <td>${r.payment_method}</td>
+                <td>${r.airline ? esc(`${r.airline} ${r.flight_number || ''}`) : '—'}</td>
+                <td>${r.luggage ? `${esc(r.luggage)} pc` : '—'}</td>
+                <td>${esc(r.est_miles || '—')}</td>
+                <td>${esc(r.payment_method)}</td>
                 <td class="earn-amt">$${rate}</td>
                 <td><button class="btn btn-delete" style="padding:0.3rem 0.6rem; font-size:0.75rem;" onclick="handleDeleteEarning('${r.id}')">🗑️</button></td>
               </tr>`;
@@ -883,6 +914,216 @@ function saveRate() {
 }
 
 // ============================================================
+//  EDIT A RIDE  /  REQUEST MISSING INFO
+// ============================================================
+const AIRPORTS = ['DFW International Airport', 'Dallas Love Field (DAL)'];
+function findRide(id) { const c = document.getElementById(`ride-${id}`); return c ? c._rideData : null; }
+function closeModal() { document.getElementById('modalWrap').style.display = 'none'; document.getElementById('modalBody').innerHTML = ''; }
+function openModal(html) { document.getElementById('modalBody').innerHTML = html; document.getElementById('modalWrap').style.display = 'flex'; }
+function replaceCard(updated) {
+  const old = document.getElementById(`ride-${updated.id}`);
+  if (!old) return;
+  old.replaceWith(buildRideCard(updated, updated.status === 'confirmed' ? 'upcoming' : 'pending'));
+}
+const airportOptions = AIRPORTS.map(a => `<option>${esc(a)}</option>`).join('');
+function field(label, input) { return `<label class="mf"><span>${label}</span>${input}</label>`; }
+
+function openEdit(id) {
+  const r = findRide(id); if (!r) return;
+  const rt = r.trip_type === 'Round Trip';
+  openModal(`
+    <h3>Edit ride — ${esc(r.name)}</h3>
+    <p class="mnote">${esc(r.trip_type || '')}. Only the fields you change are saved.</p>
+    <div class="mgrid">
+      ${field('Name', '<input id="e_name">')}
+      ${field('Phone', '<input id="e_phone" type="tel">')}
+      ${field('Email', '<input id="e_email" type="email">')}
+      ${field('Address / unit', '<input id="e_address">')}
+      ${field('Home address ("Address on file" or type one)', '<input id="e_home">')}
+      ${field('Airport', `<select id="e_airport">${airportOptions}</select>`)}
+      ${field('Date', '<input id="e_date" type="date">')}
+      ${field('Time', '<input id="e_time" type="time">')}
+      ${field('Passengers', '<select id="e_pax"><option>1</option><option>2</option><option>3</option><option>4</option></select>')}
+      ${field('Luggage', '<select id="e_lug"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select>')}
+      ${field('Airline', '<input id="e_airline">')}
+      ${field('Flight number', '<input id="e_flight">')}
+      ${field('Flight time', '<input id="e_dep" type="time">')}
+      ${field('Payment', '<select id="e_pay"><option>Venmo</option><option>Zelle</option><option>Cash</option></select>')}
+    </div>
+    ${field('Notes', '<textarea id="e_notes" rows="2"></textarea>')}
+    ${rt ? `<div class="msub">↩ Return leg</div><div class="mgrid">
+      ${field('Return date', '<input id="e_date2" type="date">')}
+      ${field('Return time', '<input id="e_time2" type="time">')}
+      ${field('Return airport', `<select id="e_airport2">${airportOptions}</select>`)}
+      ${field('Drop-off ("Address on file" or type one)', '<input id="e_home2">')}
+      ${field('Return airline', '<input id="e_airline2">')}
+      ${field('Return flight #', '<input id="e_flight2">')}
+      ${field('Arrival time', '<input id="e_arr2" type="time">')}
+    </div>` : ''}
+    <div class="mbtns"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-accept" id="e_save" onclick="saveEdit('${esc(r.id)}')">Save changes</button></div>`);
+  const L = rideLegs(r);
+  const set = (k, v) => { const el = document.getElementById(k); if (el) el.value = v ?? ''; };
+  set('e_name', r.name); set('e_phone', r.phone); set('e_email', r.email); set('e_address', r.address);
+  set('e_home', L.home); set('e_airport', L.airport); set('e_date', r.ride_date); set('e_time', hhmm(r.ride_time));
+  set('e_pax', r.passengers); set('e_lug', r.luggage); set('e_airline', r.airline); set('e_flight', r.flight_number);
+  set('e_dep', hhmm(r.departure_time)); set('e_pay', r.payment_method); set('e_notes', r.notes);
+  if (rt) {
+    set('e_date2', r.ride_date2); set('e_time2', hhmm(r.ride_time2)); set('e_airport2', r.pickup2);
+    set('e_home2', r.destination2 === 'other' ? r.other_destination2 : r.destination2);
+    set('e_airline2', r.airline2); set('e_flight2', r.flight_number2); set('e_arr2', hhmm(r.arrival_time2));
+  }
+}
+
+async function conflictFor(selfId, date, time) {
+  if (!date || !time) return null;
+  const rows = await sbFetch(`ride_requests?status=eq.confirmed&or=(ride_date.eq.${date},ride_date2.eq.${date})&id=neq.${selfId}&select=id,name,ride_date,ride_time,ride_date2,ride_time2`);
+  const mins = t => { const [h, m] = String(t).split(':'); return (+h) * 60 + (+m); };
+  const target = mins(time);
+  for (const x of rows || []) {
+    if (x.ride_date === date && x.ride_time && Math.abs(mins(x.ride_time) - target) < 45) return x;
+    if (x.ride_date2 === date && x.ride_time2 && Math.abs(mins(x.ride_time2) - target) < 45) return x;
+  }
+  return null;
+}
+
+async function saveEdit(id) {
+  const r = findRide(id); if (!r) return;
+  const v = k => { const el = document.getElementById(k); return el ? el.value.trim() : null; };
+  const rt = r.trip_type === 'Round Trip';
+  const L = rideLegs(r);
+  const f = {};
+  const put = (col, val) => { if (val === null) return; if (String(r[col] ?? '') !== String(val)) f[col] = val; };
+  put('name', v('e_name')); put('phone', v('e_phone')); put('email', v('e_email')); put('address', v('e_address'));
+  put('ride_date', v('e_date')); if (v('e_time') !== hhmm(r.ride_time)) f.ride_time = v('e_time');
+  put('passengers', v('e_pax')); put('luggage', v('e_lug')); put('airline', v('e_airline')); put('flight_number', v('e_flight'));
+  if (v('e_dep') !== hhmm(r.departure_time)) f.departure_time = v('e_dep');
+  put('payment_method', v('e_pay')); put('notes', v('e_notes'));
+
+  // Home address + airport (the form stores these on opposite columns for pick-ups)
+  const homeNew = v('e_home'), airportNew = v('e_airport');
+  const homeCol = isPickupTrip(r) ? 'destination' : 'pickup';
+  const airCol  = isPickupTrip(r) ? 'pickup' : 'destination';
+  if (homeNew !== L.home) {
+    if (homeNew === 'Address on file') f[homeCol] = 'Address on file';
+    else { f[homeCol] = 'other'; f.other_pickup = homeNew; }
+  }
+  if (airportNew !== L.airport) { f[airCol] = airportNew; f.est_miles = milesFor(airportNew); }
+
+  if (rt) {
+    if (v('e_date2') !== (r.ride_date2 || '')) f.ride_date2 = v('e_date2');
+    if (v('e_time2') !== hhmm(r.ride_time2)) f.ride_time2 = v('e_time2');
+    put('airline2', v('e_airline2')); put('flight_number2', v('e_flight2'));
+    if (v('e_arr2') !== hhmm(r.arrival_time2)) f.arrival_time2 = v('e_arr2');
+    const a2 = v('e_airport2');
+    if (a2 !== (r.pickup2 || '')) { f.pickup2 = a2; f.est_miles2 = milesFor(a2); }
+    const h2 = v('e_home2'), h2old = r.destination2 === 'other' ? (r.other_destination2 || '') : (r.destination2 || '');
+    if (h2 !== h2old) {
+      if (h2 === 'Address on file') f.destination2 = 'Address on file';
+      else { f.destination2 = 'other'; f.other_destination2 = h2; }
+    }
+  }
+  if (!Object.keys(f).length) { closeModal(); showToast('No changes to save.'); return; }
+
+  const btn = document.getElementById('e_save'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    // Warn if a changed time lands within 45 min of another confirmed ride
+    if (r.status === 'confirmed' && (f.ride_date || f.ride_time || f.ride_date2 || f.ride_time2)) {
+      const hits = [];
+      const c1 = await conflictFor(id, f.ride_date || r.ride_date, f.ride_time || r.ride_time);
+      if (c1 && (f.ride_date || f.ride_time)) hits.push(c1);
+      if (rt) {
+        const c2 = await conflictFor(id, f.ride_date2 || r.ride_date2, f.ride_time2 || r.ride_time2);
+        if (c2 && (f.ride_date2 || f.ride_time2)) hits.push(c2);
+      }
+      if (hits.length && !confirm(`⚠️ Conflict: ${hits[0].name} already has a confirmed ride within 45 minutes. Save anyway?`)) {
+        btn.disabled = false; btn.textContent = 'Save changes'; return;
+      }
+    }
+    const [updated] = await sbFetch(`ride_requests?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(f) });
+    closeModal();
+    replaceCard(updated);
+    showToast('✅ Ride updated.', 'success');
+    const tripChanged = ['ride_date','ride_time','pickup','destination','other_pickup','ride_date2','ride_time2','pickup2','destination2','other_destination2'].some(k => k in f);
+    if (updated.status === 'confirmed' && tripChanged) {
+      if (updated.sms_consent === false) showToast('Updated. This rider did not opt in to texts — please call them with the change.', 'error');
+      else if (confirm('Text the rider the updated trip details?')) await sendUpdateText(updated);
+    }
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Save changes';
+    showToast('Could not save: ' + e.message, 'error');
+  }
+}
+
+async function sendUpdateText(r) {
+  const L = rideLegs(r);
+  const route = isPickupTrip(r) ? `from ${L.airport}` : `to ${L.airport}`;
+  let ret = '';
+  if (r.trip_type === 'Round Trip' && r.ride_date2) {
+    ret = ` Return: ${fmtDate(r.ride_date2)}${r.ride_time2 ? ' at ' + formatTime(r.ride_time2) : ''}${r.pickup2 ? ' from ' + r.pickup2 : ''}.`;
+  }
+  const msg = `Hi ${String(r.name).split(' ')[0]}, your B&H Rides trip has been updated: ${fmtDate(r.ride_date)} at ${formatTime(r.ride_time)} ${route}.${ret} Questions? Call 972-824-8330.`;
+  if (await sendSMS(msg, r.phone)) showToast('📲 Update text sent.', 'success');
+}
+
+// ── Request info ──
+const INFO_ITEMS = [
+  ['flight', 'your flight number'], ['airline', 'your airline'], ['return', 'your return trip date and time'],
+  ['pickup', 'your pickup address'], ['phone', 'a confirmed phone number'], ['pax', 'passenger and luggage counts']
+];
+function openInfo(id) {
+  const r = findRide(id); if (!r) return;
+  const miss = missingInfo(r);
+  const pre = { flight: miss.includes('flight number'), airline: !r.airline, return: miss.includes('return date/time'), pickup: miss.includes('pickup address'), phone: miss.includes('phone number'), pax: false };
+  const noText = r.sms_consent === false;
+  openModal(`
+    <h3>Request info — ${esc(r.name)}</h3>
+    <p class="mnote">Tick what's missing. The rider gets a text asking them to call you with it, and the ride is flagged until you mark it received.</p>
+    ${noText ? '<p class="mnote" style="color:#fbbf24">This rider did not opt in to texts, so you can flag only — please call them.</p>' : ''}
+    <div class="mchecks">
+      ${INFO_ITEMS.map(([k, t]) => `<label><input type="checkbox" class="i_chk" value="${k}" ${pre[k] ? 'checked' : ''} onchange="updateInfoPreview('${esc(r.id)}')"> ${esc(t)}</label>`).join('')}
+      <label><input type="checkbox" id="i_other_on" onchange="updateInfoPreview('${esc(r.id)}')"> other:</label>
+      <input id="i_other" placeholder="e.g. terminal, gate code" oninput="updateInfoPreview('${esc(r.id)}')">
+    </div>
+    <div class="msub">Message preview</div>
+    <div class="mpreview" id="i_preview"></div>
+    <div class="mbtns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-ghost" onclick="sendInfo('${esc(r.id)}', false)">Flag only (I'll call)</button>
+      <button class="btn btn-accept" ${noText ? 'disabled' : ''} onclick="sendInfo('${esc(r.id)}', true)">Send text &amp; flag</button>
+    </div>`);
+  updateInfoPreview(id);
+}
+function infoList() {
+  const items = [...document.querySelectorAll('.i_chk:checked')].map(c => INFO_ITEMS.find(x => x[0] === c.value)[1]);
+  if (document.getElementById('i_other_on').checked && document.getElementById('i_other').value.trim()) items.push(document.getElementById('i_other').value.trim().slice(0, 80));
+  return items;
+}
+function joinNice(a) { return a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+function infoMessage(r, items) {
+  return `Hi ${String(r.name).split(' ')[0]}, this is B&H Rides. To finish setting up your ${fmtDate(r.ride_date)} ride we still need: ${joinNice(items)}. Please call Brian 972-824-8330 or Hilary 972-822-1457 with the details. Thank you!`;
+}
+function updateInfoPreview(id) {
+  const r = findRide(id); const items = infoList();
+  document.getElementById('i_preview').textContent = items.length ? infoMessage(r, items) : 'Tick at least one item.';
+}
+async function sendInfo(id, text) {
+  const r = findRide(id); const items = infoList();
+  if (!items.length) { showToast('Tick at least one item first.', 'error'); return; }
+  try {
+    if (text && !(await sendSMS(infoMessage(r, items), r.phone))) return;
+    const [updated] = await sbFetch(`ride_requests?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ needs_info: true, needs_info_note: joinNice(items).slice(0, 480) }) });
+    closeModal(); replaceCard(updated);
+    showToast(text ? '📲 Text sent and ride flagged.' : '⚠ Ride flagged.', 'success');
+  } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
+}
+async function infoReceived(id) {
+  try {
+    const [updated] = await sbFetch(`ride_requests?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ needs_info: false, needs_info_note: null }) });
+    replaceCard(updated); showToast('✓ Marked as received.', 'success');
+  } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
+}
+
+// ============================================================
 //  HELPERS
 // ============================================================
 function formatTime(t) {
@@ -891,6 +1132,34 @@ function formatTime(t) {
   const hr = parseInt(h);
   return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
 }
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function isPickupTrip(r) { return !!(r.trip_type && r.trip_type.startsWith('Pick-up')); }
+// Where the rider is, vs. which airport — the form stores these swapped for pick-ups
+function rideLegs(r) {
+  const airport = isPickupTrip(r) ? r.pickup : r.destination;
+  const homeOpt = isPickupTrip(r) ? r.destination : r.pickup;
+  const home = homeOpt === 'other' ? (r.other_pickup || '') : (homeOpt || '');
+  return { airport, homeOpt, home };
+}
+function milesFor(airport) {
+  return airport === 'DFW International Airport' ? '17 miles (~25 min)' : airport === 'Dallas Love Field (DAL)' ? '30 miles (~40 min)' : 'N/A';
+}
+function missingInfo(r) {
+  const m = [];
+  const rt = r.trip_type === 'Round Trip';
+  if (!r.airline || !r.flight_number) m.push('flight number');
+  if (rt && (!r.ride_date2 || !r.ride_time2)) m.push('return date/time');
+  if (rt && (!r.airline2 || !r.flight_number2)) m.push('return flight');
+  const { homeOpt, home } = rideLegs(r);
+  if (homeOpt === 'other' && !home) m.push('pickup address');
+  if ((r.phone || '').replace(/\D/g, '').length < 10) m.push('phone number');
+  return m;
+}
+function fmtDate(d) { return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+function hhmm(t) { return t ? String(t).slice(0, 5) : ''; }
 
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
