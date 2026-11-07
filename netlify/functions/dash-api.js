@@ -136,10 +136,19 @@ exports.handler = async function (event) {
   if (key.startsWith('eyJ')) headers['Authorization'] = `Bearer ${key}`; // legacy JWT-style service_role key
   if (method === 'PATCH') headers['Prefer'] = 'return=representation';
 
-  const base = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  // Tolerate a pasted URL with trailing slashes or a /rest/v1 tail
+  const base = (process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL).trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+  let host = 'invalid-url';
+  try { host = new URL(base).host; } catch (e) {}
   try {
     const res  = await fetch(`${base}/rest/v1/${path}`, { method, headers, body });
     const text = await res.text();
+    if (!res.ok) {
+      // Visible in Netlify → Logs → Functions → dash-api. Never logs the key.
+      console.log('dash-api upstream error', res.status, host, method, path.slice(0, 80), text.slice(0, 300));
+      let msg = text; try { msg = JSON.parse(text).message || text; } catch (e) {}
+      return reply(res.status, { error: `Database said: ${String(msg).slice(0, 200)} [${res.status}, ${host}]` });
+    }
     return {
       statusCode: res.status,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
